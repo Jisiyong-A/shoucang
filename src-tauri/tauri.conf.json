@@ -33,6 +33,7 @@
       "../scripts/local-api.mjs": "local-api.mjs",
       "../scripts/kankan-mcp.mjs": "kankan-mcp.mjs",
       "../scripts/macos-vision-ocr.js": "macos-vision-ocr.js",
+      "../scripts/windows-ocr.ps1": "windows-ocr.ps1",
       "../scripts/lib/anonymous-note-resolver.mjs": "lib/anonymous-note-resolver.mjs",
       "../scripts/lib/cache-cover-recovery.mjs": "lib/cache-cover-recovery.mjs",
       "../scripts/lib/category-inference.mjs": "lib/category-inference.mjs",

@@ -1,10 +1,9 @@
-import { execFile } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 
-const execFileAsync = promisify(execFile);
+import { runLocalOcr } from './ocr-adapter.mjs';
+
 const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 const MAX_REDIRECTS = 3;
 const REQUEST_TIMEOUT_MS = 20_000;
@@ -19,7 +18,6 @@ const CONTENT_TYPE_EXTENSIONS = new Map([
   ['image/webp', '.webp'],
 ]);
 const moduleDirectory = path.dirname(fileURLToPath(import.meta.url));
-const defaultOcrScriptPath = path.resolve(moduleDirectory, '..', 'macos-vision-ocr.js');
 
 export function isAllowedRemoteImageUrl(value) {
   try {
@@ -76,21 +74,6 @@ async function downloadImage(url, noteDirectory, index, fetchImpl) {
   return { fileName, filePath, sourceUrl: url };
 }
 
-export async function runMacVisionOcr(imagePaths, ocrScriptPath = defaultOcrScriptPath) {
-  if (process.platform !== 'darwin' || imagePaths.length === 0) return [];
-  const { stdout } = await execFileAsync('/usr/bin/osascript', [
-    '-l',
-    'JavaScript',
-    ocrScriptPath,
-    ...imagePaths,
-  ], {
-    maxBuffer: 8 * 1024 * 1024,
-    timeout: 120_000,
-  });
-  const payload = JSON.parse(stdout);
-  return Array.isArray(payload) ? payload : [];
-}
-
 async function mapWithConcurrency(values, concurrency, callback) {
   const results = new Array(values.length);
   let cursor = 0;
@@ -141,7 +124,7 @@ export async function localizeNoteMedia(note, options) {
   let ocrResults = [];
   let ocrError = '';
   try {
-    ocrResults = await (options.ocrRunner || runMacVisionOcr)(
+    ocrResults = await (options.ocrRunner || runLocalOcr)(
       successful.map((item) => item.filePath),
     );
   } catch (error) {
