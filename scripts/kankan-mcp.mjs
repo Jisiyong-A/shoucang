@@ -12,7 +12,9 @@ const SERVER_VERSION = '0.1.0';
 const DEFAULT_PROTOCOL_VERSION = '2025-06-18';
 const defaultDataDirectory = process.platform === 'darwin'
   ? path.join(os.homedir(), 'Library', 'Application Support', 'com.patrick.kankanshoucang')
-  : path.join(os.homedir(), '.kan-kan-shou-cang');
+  : process.platform === 'win32'
+    ? path.join(process.env.LOCALAPPDATA || os.homedir(), 'com.patrick.kankanshoucang')
+    : path.join(os.homedir(), '.kan-kan-shou-cang');
 const dataDirectory = process.env.LOCAL_APP_DATA_DIR || defaultDataDirectory;
 const legacyDataDirectory = path.join(os.homedir(), '.kan-kan-shou-cang');
 

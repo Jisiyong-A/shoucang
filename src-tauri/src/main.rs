@@ -9,7 +9,14 @@ use std::{
 
 use tauri::{path::BaseDirectory, Manager};
 
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
+
 const LOCAL_API_PORT: &str = "4318";
+
+/// CREATE_NO_WINDOW (0x08000000): keep the sidecar console from flashing
+/// a terminal window on Windows. No-op on other platforms.
+const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
 struct LocalApiState(Mutex<Option<Child>>);
 
@@ -37,7 +44,7 @@ fn resolve_local_api_script(app: &tauri::App) -> Result<PathBuf, String> {
     Err("local-api.mjs not found".to_string())
 }
 
-fn resolve_node_binary() -> String {
+fn resolve_node_binary(app: &tauri::App) -> String {
     if let Some(explicit) = std::env::var("LOCAL_API_NODE_BIN")
         .ok()
         .map(|value| value.trim().to_string())
@@ -46,16 +53,33 @@ fn resolve_node_binary() -> String {
         return explicit;
     }
 
-    let candidates = [
-        "/opt/homebrew/bin/node",
-        "/usr/local/bin/node",
-        "/usr/bin/node",
-    ];
+    #[cfg(windows)]
+    {
+        // Production Windows builds ship a portable Node runtime next to the
+        // app resources so the user does not need to install Node.js.
+        if let Ok(bundled) = app
+            .path()
+            .resolve("node/node.exe", BaseDirectory::Resource)
+        {
+            if bundled.exists() {
+                return bundled.to_string_lossy().into_owned();
+            }
+        }
+    }
 
-    for candidate in candidates {
-        let path = PathBuf::from(candidate);
-        if path.exists() {
-            return candidate.to_string();
+    #[cfg(target_os = "macos")]
+    {
+        let candidates = [
+            "/opt/homebrew/bin/node",
+            "/usr/local/bin/node",
+            "/usr/bin/node",
+        ];
+
+        for candidate in candidates {
+            let path = PathBuf::from(candidate);
+            if path.exists() {
+                return candidate.to_string();
+            }
         }
     }
 
@@ -78,14 +102,19 @@ fn spawn_local_api(app: &tauri::App) -> Result<Child, String> {
         .open(data_dir.join("local-api.stderr.log"))
         .map_err(|err| err.to_string())?;
 
-    let child = Command::new(resolve_node_binary())
+    let mut command = Command::new(resolve_node_binary(app));
+    command
         .arg(script_path)
         .env("LOCAL_API_PORT", LOCAL_API_PORT)
         .env("LOCAL_APP_DATA_DIR", &data_dir)
         .stdin(Stdio::null())
         .stdout(Stdio::from(stdout_log))
-        .stderr(Stdio::from(stderr_log))
-        .spawn();
+        .stderr(Stdio::from(stderr_log));
+
+    #[cfg(windows)]
+    command.creation_flags(CREATE_NO_WINDOW);
+
+    let child = command.spawn();
 
     child.map_err(|err| format!("failed to spawn local-api: {err}"))
 }

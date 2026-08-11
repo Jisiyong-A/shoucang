@@ -10,7 +10,6 @@
     "frontendDist": "../dist"
   },
   "app": {
-    "macOSPrivateApi": true,
     "security": {
       "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: http://127.0.0.1:4318; connect-src 'self' http://127.0.0.1:4318"
     },
@@ -23,19 +22,14 @@
         "minHeight": 760,
         "maximized": true,
         "resizable": true,
-        "dragDropEnabled": false,
-        "hiddenTitle": true,
-        "titleBarStyle": "Overlay",
-        "trafficLightPosition": {
-          "x": 16,
-          "y": 24
-        }
+        "dragDropEnabled": false
       }
     ]
   },
   "bundle": {
     "active": true,
     "resources": {
+      "resources/node/node.exe": "node/node.exe",
       "../scripts/local-api.mjs": "local-api.mjs",
       "../scripts/kankan-mcp.mjs": "kankan-mcp.mjs",
       "../scripts/macos-vision-ocr.js": "macos-vision-ocr.js",
@@ -51,7 +45,8 @@
       "../browser-extension/page-data.js": "browser-extension/page-data.js"
     },
     "icon": [
-      "icons/icon-v4.icns"
+      "icons/icon.ico",
+      "icons/icon.png"
     ]
   }
 }

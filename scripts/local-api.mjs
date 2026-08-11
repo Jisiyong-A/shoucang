@@ -29,7 +29,9 @@ const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number.parseInt(process.env.LOCAL_API_PORT || `${DEFAULT_PORT}`, 10);
 const defaultDataDirectory = process.platform === 'darwin'
   ? path.join(os.homedir(), 'Library', 'Application Support', 'com.patrick.kankanshoucang')
-  : path.join(os.homedir(), '.kan-kan-shou-cang');
+  : process.platform === 'win32'
+    ? path.join(process.env.LOCALAPPDATA || os.homedir(), 'com.patrick.kankanshoucang')
+    : path.join(os.homedir(), '.kan-kan-shou-cang');
 const dataDirectory = process.env.LOCAL_APP_DATA_DIR || defaultDataDirectory;
 const legacyDataDirectory = path.join(os.homedir(), '.kan-kan-shou-cang');
 const notesFilePath = path.join(dataDirectory, 'notes.json');
@@ -75,18 +77,46 @@ function launchDetached(command, args) {
 
 async function resolveAgentExecutable(client) {
   const executableName = client === 'codex' ? 'codex' : 'claude';
+  const home = os.homedir();
+
+  if (process.platform === 'win32') {
+    const candidates = client === 'codex'
+      ? [
+          path.join(home, '.local', 'bin', 'codex.exe'),
+          path.join(home, 'AppData', 'Roaming', 'npm', 'codex.cmd'),
+        ]
+      : [
+          path.join(home, '.local', 'bin', 'claude.exe'),
+          path.join(home, '.claude', 'local', 'claude.exe'),
+          path.join(home, 'AppData', 'Roaming', 'npm', 'claude.cmd'),
+        ];
+    const knownPath = firstExistingPath(candidates);
+    if (knownPath) return knownPath;
+
+    try {
+      const { stdout } = await execFileAsync('where', [executableName], {
+        timeout: 5000,
+        maxBuffer: 64 * 1024,
+      });
+      const resolved = stdout.split(/\r?\n/).map((line) => line.trim()).find((line) => line && existsSync(line));
+      return resolved || null;
+    } catch {
+      return null;
+    }
+  }
+
   const candidates = client === 'codex'
     ? [
         '/opt/homebrew/bin/codex',
         '/usr/local/bin/codex',
-        path.join(os.homedir(), '.local', 'bin', 'codex'),
-        path.join(os.homedir(), '.npm-global', 'bin', 'codex'),
+        path.join(home, '.local', 'bin', 'codex'),
+        path.join(home, '.npm-global', 'bin', 'codex'),
       ]
     : [
         '/opt/homebrew/bin/claude',
         '/usr/local/bin/claude',
-        path.join(os.homedir(), '.local', 'bin', 'claude'),
-        path.join(os.homedir(), '.claude', 'local', 'claude'),
+        path.join(home, '.local', 'bin', 'claude'),
+        path.join(home, '.claude', 'local', 'claude'),
       ];
   const knownPath = firstExistingPath(candidates);
   if (knownPath) return knownPath;
@@ -435,6 +465,7 @@ const server = createServer(async (request, response) => {
       sendJson(request, response, 200, {
         ok: true,
         port: PORT,
+        platform: process.platform,
         dataDirectory,
         localOcr: process.platform === 'darwin',
       });
@@ -449,7 +480,36 @@ const server = createServer(async (request, response) => {
     if (request.method === 'POST' && url.pathname === '/setup/browser-extension/open') {
       const extensionDirectory = resolveExtensionDirectory();
       if (!extensionDirectory) throw new Error('浏览器插件文件不存在');
-      if (process.platform !== 'darwin') throw new Error('当前仅支持在 macOS 上自动打开插件配置');
+      if (process.platform === 'win32') {
+        launchDetached('explorer.exe', [extensionDirectory]);
+        const chromeCandidates = [
+          path.join(process.env.ProgramFiles || 'C:\\Program Files', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+          path.join(process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+          path.join(process.env.LOCALAPPDATA || '', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+        ];
+        const chromePath = firstExistingPath(chromeCandidates);
+        if (chromePath) {
+          launchDetached(chromePath, ['chrome://extensions/']);
+        } else {
+          const edgeCandidates = [
+            path.join(process.env.ProgramFiles || 'C:\\Program Files', 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+            path.join(process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)', 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+          ];
+          const edgePath = firstExistingPath(edgeCandidates);
+          if (edgePath) {
+            launchDetached(edgePath, ['edge://extensions/']);
+          } else {
+            throw new Error('没有找到 Chrome 或 Edge');
+          }
+        }
+        sendJson(request, response, 200, {
+          ok: true,
+          path: extensionDirectory,
+          message: '已打开扩展页和插件文件夹',
+        });
+        return;
+      }
+      if (process.platform !== 'darwin') throw new Error('当前仅支持在 macOS 或 Windows 上自动打开插件配置');
       launchDetached('open', [extensionDirectory]);
       launchDetached('open', ['-a', 'Google Chrome', 'chrome://extensions/']);
       sendJson(request, response, 200, {
