@@ -274,3 +274,32 @@ npm run build
 可以商用，也可以随便改。但如果你**修改后对外分发，或者拿它提供网络服务**，必须以同样的 AGPL 协议公开你的改动源码。
 
 换句话说：欢迎拿去用、拿去改、拿去卖，但不能闭源套壳。
+
+---
+
+## 🪟 Windows 版说明（windows-redesign 分支）
+
+Windows 重构版在保留全部核心能力的同时做了平台适配：
+
+- **不需要用户安装 Node.js**：安装包内置便携 Node 运行时（`resources/node/node.exe`），sidecar 由 Tauri 壳直接拉起（`CREATE_NO_WINDOW`，无控制台闪烁）
+- **本地 OCR 改用 Windows 原生引擎**：`Windows.Media.Ocr`（WinRT）经 `scripts/windows-ocr.ps1` 调用，零额外依赖，识别语言跟随系统语言包（zh-Hans-CN / en-GB / zh-Hant-TW 等）。`/health` 会报告 OCR 引擎状态
+- **数据目录**：`%LOCALAPPDATA%\com.patrick.kankanshoucang`（macOS 路径不变）
+- **插件设置**：自动打开资源管理器 + Chrome/Edge 扩展页
+- **Agent 检测**：`where` + 常见安装路径（codex/claude）
+
+### 让 Hermes / Codex / Claude Code 读取本地收藏
+
+```bash
+# Hermes（已内置验证）
+hermes mcp add kankan-notes --command node \
+  --env "LOCAL_APP_DATA_DIR=%LOCALAPPDATA%\com.patrick.kankanshoucang" \
+  --args "D:\path\to\scripts\kankan-mcp.mjs"
+hermes mcp test kankan-notes
+
+# Codex / Claude Code：应用内「Agent」设置面板一键连接
+# 或手动：
+codex mcp add kankan-notes --env LOCAL_APP_DATA_DIR=... -- node scripts/kankan-mcp.mjs
+claude mcp add --scope user kankan-notes -e LOCAL_APP_DATA_DIR=... -- node scripts/kankan-mcp.mjs
+```
+
+MCP 工具：`search_saved_notes`（正文/OCR/标签/作者/分类搜索）、`read_saved_note`（完整正文 + 图片 OCR）。只读本机数据，不触碰小红书账号。
