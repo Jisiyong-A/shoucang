@@ -1,0 +1,57 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "看看收藏",
+  "version": "0.1.0",
+  "identifier": "com.patrick.kankanshoucang",
+  "build": {
+    "beforeDevCommand": "npm run desktop:preview",
+    "beforeBuildCommand": "npm run build",
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "macOSPrivateApi": true,
+    "security": {
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: http://127.0.0.1:4318; connect-src 'self' http://127.0.0.1:4318"
+    },
+    "windows": [
+      {
+        "title": "看看收藏",
+        "width": 1440,
+        "height": 960,
+        "minWidth": 1080,
+        "minHeight": 760,
+        "maximized": true,
+        "resizable": true,
+        "dragDropEnabled": false,
+        "hiddenTitle": true,
+        "titleBarStyle": "Overlay",
+        "trafficLightPosition": {
+          "x": 16,
+          "y": 24
+        }
+      }
+    ]
+  },
+  "bundle": {
+    "active": true,
+    "resources": {
+      "../scripts/local-api.mjs": "local-api.mjs",
+      "../scripts/kankan-mcp.mjs": "kankan-mcp.mjs",
+      "../scripts/macos-vision-ocr.js": "macos-vision-ocr.js",
+      "../scripts/lib/anonymous-note-resolver.mjs": "lib/anonymous-note-resolver.mjs",
+      "../scripts/lib/cache-cover-recovery.mjs": "lib/cache-cover-recovery.mjs",
+      "../scripts/lib/category-inference.mjs": "lib/category-inference.mjs",
+      "../scripts/lib/media-import.mjs": "lib/media-import.mjs",
+      "../scripts/lib/note-import.mjs": "lib/note-import.mjs",
+      "../scripts/lib/note-search.mjs": "lib/note-search.mjs",
+      "../browser-extension/manifest.json": "browser-extension/manifest.json",
+      "../browser-extension/background.js": "browser-extension/background.js",
+      "../browser-extension/content.js": "browser-extension/content.js",
+      "../browser-extension/page-data.js": "browser-extension/page-data.js"
+    },
+    "icon": [
+      "icons/icon-v4.icns"
+    ]
+  }
+}

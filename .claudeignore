@@ -1,0 +1,14 @@
+# Keep Claude focused on the web app source only.
+src-tauri/
+node_modules/
+.next/
+dist/
+.git/
+coverage/
+scripts/
+app/lib/real-feeds.json
+app/lib/real-feeds.json.bak.*
+app/lib/mock-data.ts
+*.log
+*.tsbuildinfo
+next-env.d.ts

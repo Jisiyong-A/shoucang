@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "看看收藏 · 单条导入",
+  "version": "0.3.0",
+  "description": "只读取当前打开的小红书笔记页面，并发送到本地看看收藏。",
+  "host_permissions": [
+    "http://127.0.0.1:4318/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.xiaohongshu.com/*",
+        "https://m.xiaohongshu.com/*"
+      ],
+      "js": ["page-data.js"],
+      "run_at": "document_idle",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://www.xiaohongshu.com/*",
+        "https://m.xiaohongshu.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
