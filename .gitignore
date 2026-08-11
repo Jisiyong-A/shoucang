@@ -51,3 +51,6 @@ next-env.d.ts
 app/lib/real-feeds.json
 app/lib/real-feeds.json.bak.*
 notes.json
+
+# foreign experiment dir (created by external process 2026-08-12)
+semantic-spike/
