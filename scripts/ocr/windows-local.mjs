@@ -50,8 +50,9 @@ export async function runWindowsOcr(imagePaths, options = {}) {
   // WinRT StorageFile.GetFileFromPathAsync requires native backslash paths.
   const nativePaths = imagePaths.map((p) => path.resolve(p).replace(/\//g, '\\'));
   const scriptPath = options.ocrScriptPath || defaultOcrScriptPath;
+  let stdout;
   try {
-    const { stdout } = await execFileAsync(resolvePowerShellExecutable(), [
+    ({ stdout } = await execFileAsync(resolvePowerShellExecutable(), [
       '-NoProfile',
       '-NonInteractive',
       '-ExecutionPolicy',
@@ -65,11 +66,19 @@ export async function runWindowsOcr(imagePaths, options = {}) {
       timeout: options.timeoutMs || 300_000,
       encoding: 'utf8',
       windowsHide: true,
-    });
-    return parseWindowsOcrOutput(stdout);
-  } catch {
-    return [];
+    }));
+  } catch (error) {
+    // The engine itself failed to run (missing PowerShell, script crash,
+    // timeout) — surface it so import records ocrError instead of
+    // silently marking the note ready.
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(`Windows OCR 引擎调用失败: ${detail}`);
   }
+  const results = parseWindowsOcrOutput(stdout);
+  if (results.length === 0 && String(stdout).trim()) {
+    throw new Error(`Windows OCR 输出无法解析: ${String(stdout).trim().slice(0, 200)}`);
+  }
+  return results;
 }
 
 /** Probe whether a recognizer language is available (one-time startup use). */
