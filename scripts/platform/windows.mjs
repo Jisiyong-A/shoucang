@@ -37,6 +37,9 @@ export function knownExecutableCandidates(client) {
   if (client === 'hermes') {
     return [
       path.join(home, 'AppData', 'Local', 'hermes', 'hermes.exe'),
+      // actual install: hermes pip venv console script (not on PATH when
+      // the app is launched from the desktop)
+      path.join(home, 'AppData', 'Local', 'hermes', 'hermes-agent', 'venv', 'Scripts', 'hermes.exe'),
       path.join(home, 'AppData', 'Local', 'Programs', 'hermes', 'hermes.exe'),
       path.join(home, 'AppData', 'Roaming', 'npm', 'hermes.cmd'),
     ];

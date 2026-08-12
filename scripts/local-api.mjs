@@ -163,14 +163,21 @@ async function buildSetupResponse() {
 let connectedAgents = new Set();
 let probePromise = null;
 let lastProbeDoneAt = 0;
+let lastProbeFailedAt = 0;
 const PROBE_TTL_MS = 30_000;
+const PROBE_RETRY_MS = 15_000;
 
 /** Probe whether an agent already has the MCP server registered.
  * Cached with a 30s TTL; the result Set is swapped atomically when the
- * probe finishes, so readers always observe the last completed state and
- * never a half-cleared one. */
+ * probe finishes, so readers always observe the last completed state.
+ * A failed probe retries after a short backoff instead of leaving the
+ * UI showing a stale "disconnected". */
 async function probeConnectedAgents(force = false) {
-  if (!force && Date.now() - lastProbeDoneAt < PROBE_TTL_MS) return;
+  const now = Date.now();
+  const lastDone = lastProbeDoneAt;
+  const lastFailed = lastProbeFailedAt;
+  if (!force && now - lastDone < PROBE_TTL_MS) return;
+  if (!force && lastFailed > lastDone && now - lastFailed < PROBE_RETRY_MS) return;
   if (probePromise) return probePromise;
   probePromise = (async () => {
     const fresh = new Set();
@@ -179,18 +186,22 @@ async function probeConnectedAgents(force = false) {
       ['claude', ['mcp', 'list', '--scope', 'user']],
       ['hermes', ['mcp', 'list']],
     ];
+    let anyFailure = false;
     for (const [client, args] of probes) {
       try {
         const executable = await resolveAgentExecutable(client);
-        if (!executable) continue;
+        if (!executable) { console.log(`[probe] ${client}: no executable`); continue; }
         const { stdout } = await execFileAsync(executable, args, { timeout: 8000, maxBuffer: 1024 * 1024 });
+        console.log(`[probe] ${client}: contains=${stdout.includes(MCP_SERVER_NAME)} bytes=${stdout.length}`);
         if (stdout.includes(MCP_SERVER_NAME)) fresh.add(client);
-      } catch {
-        // not connected or CLI unavailable — leave unset
+      } catch (err) {
+        anyFailure = true;
+        console.log(`[probe] ${client}: FAILED ${String(err.message).slice(0, 120)}`);
       }
     }
     connectedAgents = fresh;
     lastProbeDoneAt = Date.now();
+    if (anyFailure) lastProbeFailedAt = Date.now();
   })().finally(() => { probePromise = null; });
   return probePromise;
 }
