@@ -303,3 +303,18 @@ claude mcp add --scope user kankan-notes -e LOCAL_APP_DATA_DIR=... -- node scrip
 ```
 
 MCP 工具：`search_saved_notes`（正文/OCR/标签/作者/分类搜索）、`read_saved_note`（完整正文 + 图片 OCR）。只读本机数据，不触碰小红书账号。
+
+## 🪟 Windows Beta 使用说明（v0.1.0-beta）
+
+- **安装**：运行 `release/windows/KanKan-Favorites-Windows-x64-0.1.0-beta.exe`
+  （SHA256 见同目录 SHA256SUMS.txt）。无需安装 Node / Python / Rust。
+- **数据位置**：`%LOCALAPPDATA%\com.patrick.kankanshoucang\`
+  （notes.json + media/；重装/卸载均保留）。
+- **浏览器扩展**：设置页 → BROWSER BRIDGE → OPEN CHROME/EDGE SETUP，
+  开发者模式 → 加载已解压扩展 → 选择打开的文件夹。拖放或点击「拖到看看收藏」导入。
+- **OCR**：Windows 内置 Windows.Media.Ocr（本地、中文优先、无云）。设置页显示引擎与语言。
+- **Agent/MCP**：设置页 → AGENT BRIDGE → CONNECT HERMES/CODEX/CLAUDE
+  （只读 search_saved_notes / read_saved_note）。
+- **卸载**：控制面板或 `uninstall.exe`；用户数据不自动删除。
+- **已知问题**：Beta 未签名（SmartScreen 可能提示）；WinRT OCR 竖排文字支持有限；
+  Chrome 137+ 稳定版需经 chrome://extensions UI 手动加载扩展（已提供三步指引）。

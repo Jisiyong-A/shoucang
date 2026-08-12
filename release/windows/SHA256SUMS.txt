@@ -1,1 +1,1 @@
-3f512ed341da917738974da7b6250bb472946cb08be67b885d27340084ad4af6 *KanKan-Favorites-Windows-x64-0.1.0-beta.exe
+3aeec137b6509fe55cddac8133346412c7149428609299fec2dd07d8a6521615 *KanKan-Favorites-Windows-x64-0.1.0-beta.exe
