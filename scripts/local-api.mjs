@@ -13,6 +13,7 @@ import { localizeNoteMedia } from './lib/media-import.mjs';
 import { probeLocalOcr } from './ocr/index.mjs';
 import * as platform from './platform/index.mjs';
 import { resolveAnonymousNote } from './lib/anonymous-note-resolver.mjs';
+import { classifyWithAI } from './lib/ai-classifier.mjs';
 import {
   extractNoteIdFromUrl,
   extractSharedNoteUrl,
@@ -467,6 +468,23 @@ async function importNote(body = {}) {
   const existingNotes = await readNotes();
   const merged = mergeImportedNote(existingNotes, note);
   await writeNotes(merged.notes);
+
+  // Async AI re-classification: best-effort, never blocks the import,
+  // falls back to the rule-based category already assigned above.
+  void (async () => {
+    try {
+      const result = await classifyWithAI(note);
+      if (!result.ok || !result.category) return;
+      const stored = await readNotes();
+      const target = stored.find((entry) => entry?.id === note.id);
+      if (!target || target.category === result.category) return;
+      target.category = result.category;
+      await writeNotes(stored);
+      console.log(`[kankan] AI 分类: ${note.id.slice(0, 8)} -> ${result.category}`);
+    } catch {
+      // classification is optional; keep the rule-based category
+    }
+  })();
 
   return {
     notes: merged.notes,

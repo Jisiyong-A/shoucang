@@ -45,6 +45,7 @@
       "../scripts/ocr/normalize.mjs": "ocr/normalize.mjs",
       "../scripts/ocr/macos-vision.mjs": "ocr/macos-vision.mjs",
       "../scripts/ocr/windows-local.mjs": "ocr/windows-local.mjs",
+      "../scripts/lib/ai-classifier.mjs": "lib/ai-classifier.mjs",
       "../scripts/lib/note-import.mjs": "lib/note-import.mjs",
       "../scripts/lib/note-search.mjs": "lib/note-search.mjs",
       "../scripts/platform/index.mjs": "platform/index.mjs",

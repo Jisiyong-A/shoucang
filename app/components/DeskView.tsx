@@ -25,6 +25,7 @@ import {
   selectDraggedNoteInput,
 } from '../lib/drag-import.mjs';
 import { filterNotesByQuery } from '../../scripts/lib/note-search.mjs';
+import { hybridSearchNotes } from '../lib/semantic-search';
 import {
   createDeskGroup,
   ensureDeskState,
@@ -176,10 +177,15 @@ export function DeskView() {
   }, [notes]);
 
   // ── Derived data ──
-  const visibleNotes = useMemo(
-    () => filterNotesByQuery(notes, searchQuery.trim(), (note: Note) => note.rawContent || ''),
-    [notes, searchQuery],
-  );
+  const visibleNotes = useMemo(() => {
+    const query = searchQuery.trim();
+    if (!query) return notes;
+    // Hybrid: exact keyword hits first, then local TF-IDF semantic hits
+    // (title/body/OCR/tags) so phrasing differences still find the note.
+    return hybridSearchNotes(notes, query, (note) =>
+      filterNotesByQuery([note], query, (n: Note) => n.rawContent || '').length > 0,
+    );
+  }, [notes, searchQuery]);
 
   const hasActiveSearch = searchQuery.trim().length > 0;
 
