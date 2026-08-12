@@ -18,11 +18,12 @@ import { env, pipeline } from '@huggingface/transformers';
 env.allowLocalModels = true;
 env.localModelPath = '/models/';
 
-const MODEL_ID = 'multilingual-e5-large';
-const EMBEDDING_DIM = 1024;
+const MODEL_ID = 'multilingual-e5-base';
+const EMBEDDING_DIM = 768;
 const DB_NAME = 'shoucang-semantic';
 const DB_STORE = 'vectors';
-const DB_VERSION = 2;
+// v3: e5-base -> 768-d; bump wipes stale v1/v2 (512d/1024d) vectors.
+const DB_VERSION = 3;
 
 let embedderPromise = null;
 let cacheDbPromise = null;
