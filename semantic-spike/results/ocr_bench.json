@@ -1,0 +1,148 @@
+{
+  "v4_mobile": {
+    "avg_latency_ms": 1159.8,
+    "avg_line_recall": 0.667,
+    "per_image": {
+      "01_chinese_long.png": {
+        "latency_ms": 1603.8,
+        "line_recall": 0.0,
+        "raw_output": [
+          "金泽二十一世纪美术馆建成于2004年，由SANAA事务",
+          "建筑的圆形平面直径达到112.5米，外立面采用大面积弧",
+          "这座美术馆最大的特点是取消了传统意义上的正面与背面",
+          "访客可以从四面八方进入建筑，公园与室内空间连成一片",
+          "内部展厅采用白色极简风格，混凝土与玻璃的交接处理得",
+          "设计团队希望通过透明边界模糊室内外的区别，让美术馆",
+          "美术馆开幕以来接待了超过两千万名访客，成为金泽的城",
+          "二○○四年该项目获得威尼斯建筑双年展金狮奖的提名"
+        ]
+      },
+      "02_mixed.png": {
+        "latency_ms": 1467.9,
+        "line_recall": 1.0,
+        "raw_output": [
+          "KANKANLOCALARCHIVE本地收藏",
+          "建筑师：BIG|项目：VIA57WEST",
+          "The facade uses 45-degree zigzag geometry.",
+          "立面采用四十五度折线几何，形成金字塔般的轮廓。",
+          "BIM模型与现场施工图完全一致，误差控制在五毫米内。",
+          "TerminalA出发层，GateC18，下一班航班14:30。"
+        ]
+      },
+      "03_low_contrast.png": {
+        "latency_ms": 938.1,
+        "line_recall": 1.0,
+        "raw_output": [
+          "低对比度文本测试",
+          "这种颜色接近时很难辨认",
+          "浅灰与中灰的边界"
+        ]
+      },
+      "04_dark_bg.png": {
+        "latency_ms": 601.6,
+        "line_recall": 1.0,
+        "raw_output": [
+          "深色背景上的文字",
+          "OLED纯黑界面中的笔记",
+          "夜览模式下阅读"
+        ]
+      },
+      "05_small_font.png": {
+        "latency_ms": 1336.0,
+        "line_recall": 0.67,
+        "raw_output": [
+          "收藏夹：建筑参考分类：住宅|作者：ArchDaily",
+          "北海道白色木造住宅，屋顶坡度三十度，檐口出挑六百毫米。",
+          "室内层高三米二，南向开窗，冬季日照角度约二十三度。"
+        ]
+      },
+      "06_arch_annotation.png": {
+        "latency_ms": 1011.5,
+        "line_recall": 0.33,
+        "raw_output": [
+          "一层平面1：100",
+          "客厅LIVINGR00M4.8m×6.2m",
+          "厨房KITCHEN3.Om×3.6m",
+          "卫生间WC1.8m×2.4m",
+          "挑空DOUBLEHEIGHT",
+          "檐口标高+6.300"
+        ]
+      }
+    }
+  },
+  "v5_mobile": {
+    "avg_latency_ms": 2680.7,
+    "avg_line_recall": 0.598,
+    "per_image": {
+      "01_chinese_long.png": {
+        "latency_ms": 2454.9,
+        "line_recall": 0.25,
+        "raw_output": [
+          "金泽二十一世纪美术馆建成于2004年，由SANAA事务",
+          "建筑的圆形平面直径达到112.5米，外立面采用大面积弧",
+          "这座美术馆最大的特点是取消了传统意义上的正面与背面，",
+          "访客可以从四面八方进入建筑，公园与室内空间连成一片。",
+          "内部展厅采用白色极简风格，混凝土与玻璃的交接处理得",
+          "设计团队希望通过透明边界模糊室内外的区别，让美术馆",
+          "美术馆开幕以来接待了超过两千万名访客，成为金泽的城",
+          "二OO四年该项目获得威尼斯建筑双年展金狮奖的提名。"
+        ]
+      },
+      "02_mixed.png": {
+        "latency_ms": 2750.7,
+        "line_recall": 0.5,
+        "raw_output": [
+          "KANKAN LOCAL ARCHIVE",
+          "本地收藏",
+          "建筑师：",
+          "BIG|项目：VIA57",
+          "7WEST",
+          "The facade uses 45-degree",
+          "zigzag geometry.",
+          "立面采用四十五度折线几何，形成金字塔般的轮廓。"
+        ]
+      },
+      "03_low_contrast.png": {
+        "latency_ms": 2493.2,
+        "line_recall": 1.0,
+        "raw_output": [
+          "低对比度文本测试",
+          "这种颜色接近时很难辨认",
+          "浅灰与中灰的边界"
+        ]
+      },
+      "04_dark_bg.png": {
+        "latency_ms": 2200.2,
+        "line_recall": 1.0,
+        "raw_output": [
+          "深色背景上的文字",
+          "OLED纯黑界面中的笔记",
+          "夜览模式下阅读"
+        ]
+      },
+      "05_small_font.png": {
+        "latency_ms": 3711.6,
+        "line_recall": 0.67,
+        "raw_output": [
+          "收藏夹：建筑参考|分类：住宅|作者：ArchDaily",
+          "北海道白色木造住宅，屋顶坡度三十度，檐口出挑六百毫米。",
+          "室内层高三米二，南向开窗，冬季日照角度约二十三度。"
+        ]
+      },
+      "06_arch_annotation.png": {
+        "latency_ms": 2473.8,
+        "line_recall": 0.17,
+        "raw_output": [
+          "一层平面",
+          "1:100",
+          "客厅 LIVING R00M 4.8m × 6.2m",
+          "厨房 KITCHEN 3.Om × 3.6m",
+          "卫生间 WC 1.8m× 2.4m",
+          "挑空 DOUBLE HEIGHT",
+          "檐口标高",
+          "高+6.300"
+        ]
+      }
+    }
+  }
+}
