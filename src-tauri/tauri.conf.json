@@ -28,6 +28,7 @@
   },
   "bundle": {
     "active": true,
+    "targets": ["nsis"],
     "resources": {
       "resources/node/node.exe": "node/node.exe",
       "../scripts/local-api.mjs": "local-api.mjs",
