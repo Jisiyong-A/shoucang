@@ -9,11 +9,13 @@
 //! - embeddings as raw f32 BLOBs + Rust brute-force cosine (1k–10k chunks)
 //! - ingest_jobs state machine so an interrupted ingest is recoverable
 
+pub mod chunk;
 pub mod embed;
 pub mod ingest;
 pub mod notes;
 pub mod schema;
 pub mod search;
+pub mod semantic;
 pub mod store;
 
 pub use schema::{MigrateError, SCHEMA_VERSION};
