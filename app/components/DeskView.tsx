@@ -27,6 +27,11 @@ import {
 import { filterNotesByQuery } from '../../scripts/lib/note-search.mjs';
 import { hybridSearchNotes } from '../lib/semantic-search';
 import {
+  indexNotesInBackground,
+  semanticIndexStatus,
+  semanticSearchEmbedded,
+} from '../lib/semantic-embed.mjs';
+import {
   createDeskGroup,
   ensureDeskState,
   moveNoteToGroup,
@@ -36,6 +41,7 @@ import {
 import { DotMatrix } from './ui/DotMatrix';
 import { TitleBar } from './shell/TitleBar';
 import { Sidebar, RailGroup } from './shell/Sidebar';
+import { TopNav } from './shell/TopNav';
 import { StatusBar } from './shell/StatusBar';
 import { NoteGrid } from './notes/NoteGrid';
 import { NoteDetail } from './notes/NoteDetail';
@@ -176,8 +182,56 @@ export function DeskView() {
     }
   }, [notes]);
 
+  // ── Embedded semantic index (local WASM model, background) ──
+  const [semanticIndexed, setSemanticIndexed] = useState({ cached: 0, total: 0 });
+  const [semanticHits, setSemanticHits] = useState<Note[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const status = await semanticIndexStatus(notes);
+        if (cancelled) return;
+        setSemanticIndexed(status);
+        if (status.cached < status.total) {
+          await indexNotesInBackground(notes, {
+            onProgress: (cached: number, total: number) => {
+              if (!cancelled) setSemanticIndexed({ cached, total });
+            },
+          });
+          if (!cancelled) setSemanticIndexed(await semanticIndexStatus(notes));
+        }
+      } catch {
+        // model unavailable — TF-IDF search remains the fallback
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [notes]);
+
+  useEffect(() => {
+    const query = searchQuery.trim();
+    if (!query) {
+      setSemanticHits([]);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const hits = await semanticSearchEmbedded(notes, query);
+        if (!cancelled && hits.length > 0) {
+          setSemanticHits(hits.map((hit) => hit.note));
+        } else if (!cancelled) {
+          setSemanticHits([]);
+        }
+      } catch {
+        if (!cancelled) setSemanticHits([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [searchQuery, notes]);
+
   // ── Derived data ──
-  const visibleNotes = useMemo(() => {
+  const baseSearchNotes = useMemo(() => {
     const query = searchQuery.trim();
     if (!query) return notes;
     // Hybrid: exact keyword hits first, then local TF-IDF semantic hits
@@ -186,6 +240,15 @@ export function DeskView() {
       filterNotesByQuery([note], query, (n: Note) => n.rawContent || '').length > 0,
     );
   }, [notes, searchQuery]);
+
+  const visibleNotes = useMemo(() => {
+    const query = searchQuery.trim();
+    if (!query) return notes;
+    // Merge embedded-semantic hits (async) that the sync layer missed.
+    if (semanticHits.length === 0) return baseSearchNotes;
+    const seen = new Set(baseSearchNotes.map((note) => note.id));
+    return [...baseSearchNotes, ...semanticHits.filter((note) => !seen.has(note.id))];
+  }, [baseSearchNotes, semanticHits, searchQuery, notes]);
 
   const hasActiveSearch = searchQuery.trim().length > 0;
 
@@ -562,9 +625,9 @@ export function DeskView() {
         )}
       </AnimatePresence>
 
-      {/* Layer 2: sidebar + workspace */}
-      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <Sidebar
+      {/* Layer 2: top navigation (XHS-style) + full-width workspace */}
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+        <TopNav
           groups={railGroups}
           categories={categories}
           activeGroup={activeGroup}
@@ -592,6 +655,7 @@ export function DeskView() {
             position: 'relative',
             flex: 1,
             minWidth: 0,
+            minHeight: 0,
             overflowY: 'auto',
             padding: '20px 20px 96px',
           }}
