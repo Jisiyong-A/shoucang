@@ -23,7 +23,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       .catch((error) => {
         sendResponse({
           ok: false,
-          error: error instanceof Error ? error.message : '无法连接看看收藏',
+          error: error instanceof Error ? error.message : '无法连接收藏',
         });
       });
     return true;

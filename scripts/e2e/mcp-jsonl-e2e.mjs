@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // seed sample notes into a temp data dir
-const DATA_DIR = path.join(process.env.TEMP || '.', 'kankan-mcp-test');
+const DATA_DIR = path.join(process.env.TEMP || '.', 'shoucang-mcp-test');
 fs.mkdirSync(path.join(DATA_DIR, 'media'), { recursive: true });
 fs.writeFileSync(path.join(DATA_DIR, 'notes.json'), JSON.stringify([
   {
@@ -29,7 +29,7 @@ fs.writeFileSync(path.join(DATA_DIR, 'notes.json'), JSON.stringify([
   },
 ], null, 2));
 
-const server = spawn('node', [path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'kankan-mcp.mjs')], {
+const server = spawn('node', [path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'shoucang-mcp.mjs')], {
   env: { ...process.env, LOCAL_APP_DATA_DIR: DATA_DIR },
   stdio: ['pipe', 'pipe', 'inherit'],
 });

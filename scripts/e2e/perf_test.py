@@ -8,7 +8,7 @@ import websocket
 
 API = 'http://127.0.0.1:4318'
 CDP = 'http://127.0.0.1:9231'
-DATA = r'C:\Users\12155\AppData\Local\com.patrick.kankanshoucang'
+DATA = r'C:\Users\12155\AppData\Local\com.patrick.shoucang'
 
 WORDS = ['极简', '咖啡', '收纳', '苔藓', '书桌', '灯光', '水温', '粉水比', '庭院', '早餐',
          '摄影', '旅行', '穿搭', '护肤', '健身', '阅读', '编程', '音乐', '电影', '园艺']

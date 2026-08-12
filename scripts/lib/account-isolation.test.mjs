@@ -5,7 +5,7 @@ import test from 'node:test';
 const manifestUrl = new URL('../../browser-extension/manifest.json', import.meta.url);
 const backgroundUrl = new URL('../../browser-extension/background.js', import.meta.url);
 const contentUrl = new URL('../../browser-extension/content.js', import.meta.url);
-const mcpServerUrl = new URL('../kankan-mcp.mjs', import.meta.url);
+const mcpServerUrl = new URL('../shoucang-mcp.mjs', import.meta.url);
 
 test('browser extension cannot open hidden tabs or read account credentials', async () => {
   const [manifestRaw, background, content] = await Promise.all([

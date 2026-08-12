@@ -44,7 +44,7 @@
 ## §7 内存（实测快照）
 | 进程 | 内存 |
 |---|---|
-| App (kan-kan-shou-cang.exe) | ~27–41 MB |
+| App (shoucang.exe) | ~27–41 MB |
 | Node sidecar（含 1000 笔记加载） | ~40–76 MB |
 | WebView2 全部子进程 | ~131 MB（预览 Chrome 实测；Tauri WebView2 同构） |
 | OCR 进程 | 无常驻（PowerShell 每批调用即退，模型=OS 内置零常驻） |
@@ -76,7 +76,7 @@
 |---|---|
 | 4318 被占用 | ✅ sidecar EADDRINUSE 明确日志 + listen 重试 + 退出（app 显示 OFFLINE） |
 | OCR 脚本缺失 | ✅ localOcr=False + error 含具体文件不存在信息 |
-| notes.json 损坏 | ✅ 返回空 + `[kankan] notes.json 解析失败` 可诊断日志（新增） |
+| notes.json 损坏 | ✅ 返回空 + `[shoucang] notes.json 解析失败` 可诊断日志（新增） |
 | media 无权限 | ⚠️ 未专项测试（P2；Windows ACL 下表现为 mediaStatus partial） |
 | 浏览器未安装 | ✅ NOT INSTALLED + 明确手动指引，不假成功 |
 | Agent CLI 不存在 | ✅ NOT FOUND（resolveExecutable null） |

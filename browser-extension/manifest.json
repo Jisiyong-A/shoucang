@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "看看收藏 · 单条导入",
+  "name": "收藏 · 单条导入",
   "version": "0.3.0",
-  "description": "只读取当前打开的小红书笔记页面，并发送到本地看看收藏。",
+  "description": "只读取当前打开的小红书笔记页面，并发送到本地收藏。",
   "host_permissions": [
     "http://127.0.0.1:4318/*"
   ],

@@ -25,7 +25,7 @@ import {
 } from './lib/note-import.mjs';
 
 const DEFAULT_PORT = 4318;
-const MCP_SERVER_NAME = 'kankan-notes';
+const MCP_SERVER_NAME = 'shoucang-notes';
 const execFileAsync = promisify(execFile);
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number.parseInt(process.env.LOCAL_API_PORT || `${DEFAULT_PORT}`, 10);
@@ -39,8 +39,8 @@ const mediaDirectory = path.join(dataDirectory, 'media');
 const publicBaseUrl = `http://127.0.0.1:${PORT}`;
 const coverCacheDirectories = process.platform === 'darwin'
   ? [
-      path.join(os.homedir(), 'Library', 'Caches', 'com.patrick.kankanshoucang', 'WebKit', 'NetworkCache'),
-      path.join(os.homedir(), 'Library', 'Caches', 'kan-kan-shou-cang', 'WebKit', 'NetworkCache'),
+      path.join(os.homedir(), 'Library', 'Caches', 'com.patrick.shoucang', 'WebKit', 'NetworkCache'),
+      path.join(os.homedir(), 'Library', 'Caches', 'shoucang', 'WebKit', 'NetworkCache'),
     ]
   : [];
 let mutationQueue = Promise.resolve();
@@ -63,8 +63,8 @@ function resolveExtensionDirectory() {
 
 function resolveMcpServerPath() {
   return firstExistingPath([
-    path.resolve(scriptDirectory, 'kankan-mcp.mjs'),
-    path.resolve(scriptDirectory, '../scripts/kankan-mcp.mjs'),
+    path.resolve(scriptDirectory, 'shoucang-mcp.mjs'),
+    path.resolve(scriptDirectory, '../scripts/shoucang-mcp.mjs'),
   ]);
 }
 
@@ -171,7 +171,7 @@ async function backupHermesConfig() {
   }
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   for (const file of candidates) {
-    copyFileSync(file, `${file}.kankan-backup-${stamp}`);
+    copyFileSync(file, `${file}.shoucang-backup-${stamp}`);
   }
   return candidates.length;
 }
@@ -313,7 +313,7 @@ async function readNotesFile(filePath) {
     return Array.isArray(raw) ? raw.filter(isUsableStoredNote) : [];
   } catch (error) {
     // Corrupt archive must not crash the app, but must stay diagnosable.
-    console.error(`[kankan] notes.json 解析失败（${filePath}）:`, error instanceof Error ? error.message : String(error));
+    console.error(`[shoucang] notes.json 解析失败（${filePath}）:`, error instanceof Error ? error.message : String(error));
     return [];
   }
 }

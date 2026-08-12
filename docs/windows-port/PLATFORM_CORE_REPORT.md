@@ -10,11 +10,11 @@
 | `macos.mjs` | Application Support 数据目录、Homebrew/`command -v` 发现、`open` 打开 |
 | `index.mjs` | 统一 facade（dataDirectory / resolveAgentExecutable / openFolder / openBrowserUrl / 平台名） |
 
-业务代码（local-api / kankan-mcp）已全部迁移到 facade；`process.platform` 分支仅剩数据常量与上报字段（3 处，有注释）。
+业务代码（local-api / shoucang-mcp）已全部迁移到 facade；`process.platform` 分支仅剩数据常量与上报字段（3 处，有注释）。
 
 ## 2. 数据目录
-- 发布版数据：Tauri `app_local_data_dir()` → `%LOCALAPPDATA%\com.patrick.kankanshoucang\`（Rust 传入 LOCAL_APP_DATA_DIR）
-- 旧 `~/.kan-kan-shou-cang` 仅作兼容迁移源（读合并，不写入）
+- 发布版数据：Tauri `app_local_data_dir()` → `%LOCALAPPDATA%\com.patrick.shoucang\`（Rust 传入 LOCAL_APP_DATA_DIR）
+- 旧 `~/.shoucang` 仅作兼容迁移源（读合并，不写入）
 - 结构：notes.json / media/ / local-api.{stdout,stderr,spawn}.log
 
 ## 3. Node runtime（self-contained）

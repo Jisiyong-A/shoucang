@@ -165,7 +165,7 @@ fn wait_for_local_api(data_dir: &std::path::Path, port: &str, child: &mut Child)
             let stderr_path = data_dir.join("local-api.stderr.log");
             eprintln!(
                 "local-api exited early (status {status}). Check {} for the error. \
-                 If the error mentions EADDRINUSE, another 看看收藏 instance is already running.",
+                 If the error mentions EADDRINUSE, another 收藏 instance is already running.",
                 stderr_path.display()
             );
             return;

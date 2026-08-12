@@ -1,6 +1,6 @@
 """WebView2-side drop handling test: dispatch a synthetic drop on the real
 production UI (localhost:8080) with the extension's exact drag payload
-(text/plain KANKAN payload + uri-list). Asserts import pipeline runs."""
+(text/plain SHOUCANG payload + uri-list). Asserts import pipeline runs."""
 import json
 import time
 import urllib.request
@@ -48,7 +48,7 @@ payload = json.dumps({
 result = ev(f"""
 (async () => {{
   const dt = new DataTransfer();
-  dt.setData('text/plain', 'KANKAN_CARD:{payload}');
+  dt.setData('text/plain', 'SHOUCANG_CARD:{payload}');
   dt.setData('text/uri-list', 'https://www.xiaohongshu.com/explore/6a7acd410000000022013d61');
   const root = Array.from(document.querySelectorAll('div')).find(d => d.style && d.style.height === '100vh')
     || document.body;

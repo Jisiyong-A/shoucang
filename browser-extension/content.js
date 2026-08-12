@@ -1,8 +1,8 @@
-const BUTTON_ID = 'kankan-note-import-button';
-const PAYLOAD_PREFIX = 'KANKAN_NOTE:';
-const CARD_PAYLOAD_PREFIX = 'KANKAN_CARD:';
-const PAGE_DATA_SOURCE = 'kankan-note-page-data';
-const PAGE_DATA_REQUEST_EVENT = 'kankan-note-capture-request';
+const BUTTON_ID = 'shoucang-note-import-button';
+const PAYLOAD_PREFIX = 'SHOUCANG_NOTE:';
+const CARD_PAYLOAD_PREFIX = 'SHOUCANG_CARD:';
+const PAGE_DATA_SOURCE = 'shoucang-note-page-data';
+const PAGE_DATA_REQUEST_EVENT = 'shoucang-note-capture-request';
 let cachedPageData = null;
 let requestedNoteId = '';
 
@@ -172,8 +172,8 @@ function installButton() {
   button.id = BUTTON_ID;
   button.type = 'button';
   button.draggable = true;
-  button.textContent = '拖到「看看收藏」';
-  button.title = '拖到看看收藏，或点击直接收藏当前笔记';
+  button.textContent = '拖到「收藏」';
+  button.title = '拖到收藏，或点击直接收藏当前笔记';
   Object.assign(button.style, {
     position: 'fixed',
     right: '24px',
@@ -195,7 +195,7 @@ function installButton() {
       const note = captureCurrentNote();
       const payload = `${PAYLOAD_PREFIX}${JSON.stringify(note)}`;
       event.dataTransfer.effectAllowed = 'copy';
-      event.dataTransfer.setData('application/x-kankan-note', payload);
+      event.dataTransfer.setData('application/x-shoucang-note', payload);
       event.dataTransfer.setData('text/plain', payload);
       event.dataTransfer.setData('text/uri-list', note.sourceUrl);
       heartbeat();
@@ -226,7 +226,7 @@ function installButton() {
       } else {
         setButtonState(button, response.created ? '已收藏 ✓' : '已更新 ✓', '#6E9478');
       }
-      setTimeout(() => setButtonState(button, '拖到「看看收藏」', '#829987'), 2200);
+      setTimeout(() => setButtonState(button, '拖到「收藏」', '#829987'), 2200);
     });
   });
 
@@ -247,7 +247,7 @@ document.addEventListener('dragstart', (event) => {
 
   const payload = `${CARD_PAYLOAD_PREFIX}${JSON.stringify(card)}`;
   event.dataTransfer.effectAllowed = 'copy';
-  event.dataTransfer.setData('application/x-kankan-card', payload);
+  event.dataTransfer.setData('application/x-shoucang-card', payload);
   event.dataTransfer.setData('text/plain', payload);
   event.dataTransfer.setData('text/uri-list', card.sourceUrl);
 }, true);

@@ -1,4 +1,4 @@
-/* 看看收藏 · KANKAN DOT/GRID UI — orchestrator
+/* 收藏 · SHOUCANG DOT/GRID UI — orchestrator
  * Three-layer shell: TitleBar / Sidebar+Workspace / StatusBar.
  * All state + side-effect logic lives here; presentational pieces live in
  * shell/, notes/, search/, import/, setup/, ui/.
@@ -49,9 +49,9 @@ import { SetupPanel as SetupPanelType } from './DeskView.types';
 function getDraggedNoteTitle(input: string): string {
   const card = parseDraggedCardInput(input);
   if (card?.title) return card.title;
-  const markerIndex = input.indexOf('KANKAN_NOTE:');
+  const markerIndex = input.indexOf('SHOUCANG_NOTE:');
   if (markerIndex >= 0) {
-    const afterMarker = input.slice(markerIndex + 'KANKAN_NOTE:'.length);
+    const afterMarker = input.slice(markerIndex + 'SHOUCANG_NOTE:'.length);
     const parts = afterMarker.split('|');
     return parts[1] || '笔记';
   }
@@ -246,7 +246,7 @@ export function DeskView() {
         phase: 'error',
         step: 'error',
         title: '本地服务未连接',
-        message: '请重新启动看看收藏后再试',
+        message: '请重新启动收藏后再试',
       });
       dismissImportFeedback('error');
       return;
@@ -309,8 +309,8 @@ export function DeskView() {
     event.preventDefault();
     event.stopPropagation();
     const input = selectDraggedNoteInput({
-      custom: event.dataTransfer.getData('application/x-kankan-note')
-        || event.dataTransfer.getData('application/x-kankan-card'),
+      custom: event.dataTransfer.getData('application/x-shoucang-note')
+        || event.dataTransfer.getData('application/x-shoucang-card'),
       plain: event.dataTransfer.getData('text/plain'),
       uriList: event.dataTransfer.getData('text/uri-list'),
       mozUrl: event.dataTransfer.getData('text/x-moz-url'),

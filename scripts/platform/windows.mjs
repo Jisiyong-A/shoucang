@@ -1,6 +1,6 @@
 /**
  * Windows platform adapter.
- * - data directory: %LOCALAPPDATA%\com.patrick.kankanshoucang (LOCAL_APP_DATA_DIR wins)
+ * - data directory: %LOCALAPPDATA%\com.patrick.shoucang (LOCAL_APP_DATA_DIR wins)
  * - executable discovery: known install paths, then `where`
  * - open folder: explorer.exe
  * - open browser URL: Chrome (Program Files / x86 / LOCALAPPDATA), else Edge

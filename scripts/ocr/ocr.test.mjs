@@ -18,6 +18,7 @@ test('probeLocalOcr reports an engine with languages on win32', { skip: process.
 });
 
 test('normalizeWindowsOcrText removes spaces between CJK glyphs', () => {
+  // fixture image text kept as-is (test asset, not product naming)
   assert.equal(
     normalizeWindowsOcrText('看 看 收 藏 本 地 测 试'),
     '看看收藏本地测试',

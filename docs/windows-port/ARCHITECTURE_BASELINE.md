@@ -1,4 +1,4 @@
-# Architecture Baseline — 看看收藏 (kankan-shoucang)
+# Architecture Baseline — 收藏
 
 > Branch: `windows-redesign` · Baseline: upstream `main` @ 2026-08-12 · License: AGPL-3.0-or-later
 
@@ -39,15 +39,15 @@ Sidecar lifecycle: setup → resolve `local-api.mjs` (cwd candidates → BaseDir
 | `scripts/lib/category-inference.mjs` | shared |
 | `scripts/lib/note-search.mjs` | shared |
 | `scripts/lib/cache-cover-recovery.mjs` | macOS WebKit cache recovery only (darwin guard) |
-| Data | `%LOCALAPPDATA%\com.patrick.kankanshoucang\` → `notes.json`, `media/`, `local-api.*.log`; legacy `~/.kan-kan-shou-cang` merged as migration source only |
-| MCP | `scripts/kankan-mcp.mjs` (JSONL stdio; search_saved_notes / read_saved_note; read-only) |
+| Data | `%LOCALAPPDATA%\com.patrick.shoucang\` → `notes.json`, `media/`, `local-api.*.log`; legacy `~/.shoucang` merged as migration source only |
+| MCP | `scripts/shoucang-mcp.mjs` (JSONL stdio; search_saved_notes / read_saved_note; read-only) |
 
 ## Browser extension (Manifest V3)
 
 | File | Role |
 |---|---|
 | `manifest.json` | MV3; host_permissions only `http://127.0.0.1:4318/*`; NO tabs/cookies permissions |
-| `content.js` | Drag payloads (KANKAN_NOTE:/KANKAN_CARD:) + capture-current-note + floating button |
+| `content.js` | Drag payloads (SHOUCANG_NOTE:/SHOUCANG_CARD:) + capture-current-note + floating button |
 | `page-data.js` | MAIN-world page-data bridge (window.postMessage) |
 | `background.js` | IMPORT_NOTE → POST /notes/import; error surfaced to button state |
 

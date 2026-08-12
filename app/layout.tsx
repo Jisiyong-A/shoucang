@@ -3,7 +3,7 @@ import "./globals.css";
 import { AppProvider } from "./lib/store";
 
 export const metadata: Metadata = {
-  title: "看看收藏",
+  title: "收藏",
   description: "小红书收藏沉淀",
   icons: { icon: '/icon.svg' },
 };

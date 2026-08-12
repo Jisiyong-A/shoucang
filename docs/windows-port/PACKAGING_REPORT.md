@@ -4,7 +4,7 @@
 
 ## 产物（§1/§12）
 ```
-release/windows/KanKan-Favorites-Windows-x64-0.1.0-beta.exe   25.1 MB (NSIS)
+release/windows/ShouCang-Favorites-Windows-x64-0.1.0-beta.exe   25.1 MB (NSIS)
 release/windows/SHA256SUMS.txt
 SHA256: 3f512ed341da917738974da7b6250bb472946cb08be67b885d27340084ad4af6
 ```
@@ -16,11 +16,11 @@ SHA256: 3f512ed341da917738974da7b6250bb472946cb08be67b885d27340084ad4af6
 ## 安装包内容（§2，7z 实测列出）
 | 项 | 状态 |
 |---|---|
-| Tauri app (kan-kan-shou-cang.exe 8.7MB) | ✅ |
+| Tauri app (shoucang.exe 8.7MB) | ✅ |
 | frontend dist（embedded） | ✅ |
 | bundled Node runtime (node\node.exe v24.14.1) | ✅ |
 | local-api scripts + lib/ + ocr/ + platform/（19 资源，bundle-completeness 守卫） | ✅ |
-| MCP server (kankan-mcp.mjs) | ✅ |
+| MCP server (shoucang-mcp.mjs) | ✅ |
 | OCR runtime（windows-ocr.ps1；引擎=OS 内置 Windows.Media.Ocr，无模型文件） | ✅ |
 | browser-extension/（manifest+content+background+page-data） | ✅ |
 | icons（tauri icon 全套含 .ico） | ✅ |
@@ -33,9 +33,9 @@ SHA256: 3f512ed341da917738974da7b6250bb472946cb08be67b885d27340084ad4af6
 - 本机 WebView2 151 实测可用
 
 ## 图标（§4）✅ 原创点阵 K 图标（黑/白底、圆角几何），无 Nothing/Apple/小红书商标
-## 名称（§5）✅ 开发阶段保留「看看收藏」，未擅自改名
-## 路径（§6）✅ 安装=%LOCALAPPDATA%\看看收藏（Tauri NSIS 默认）；用户数据
-  =%LOCALAPPDATA%\com.patrick.kankanshoucang（绝不写安装目录）
+## 名称（§5）✅ 开发阶段保留「收藏」，未擅自改名
+## 路径（§6）✅ 安装=%LOCALAPPDATA%\收藏（Tauri NSIS 默认）；用户数据
+  =%LOCALAPPDATA%\com.patrick.shoucang（绝不写安装目录）
 
 ## 升级安全（§7）✅ 数据在 LocalAppData 独立目录，重装/覆盖安装不触碰
 （实测静默重装后 notes.json/media 原样）

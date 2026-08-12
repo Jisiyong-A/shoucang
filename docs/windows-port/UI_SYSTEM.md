@@ -1,6 +1,6 @@
-# KANKAN DOT/GRID UI — 视觉系统说明
+# SHOUCANG DOT/GRID UI — 视觉系统说明
 
-> 代号：**KANKAN DOT/GRID UI**（仅代码/文档内部代号，非对外品牌）
+> 代号：**SHOUCANG DOT/GRID UI**（仅代码/文档内部代号，非对外品牌）
 > 2026-08-12 · windows-redesign
 
 ## 设计原则
@@ -33,7 +33,7 @@
 ## 信息架构（三层）
 ```
 ┌──────────────────────────────────────────┐
-│ TitleBar: KAN KAN / COLLECTION SYSTEM    │
+│ TitleBar: 收藏 / COLLECTION SYSTEM    │
 │   [SEARCH] [IMPORT] [EXTENSION] [AGENT]  │
 │   LOCAL ● READY                          │
 ├──────────────┬───────────────────────────┤

@@ -1,6 +1,6 @@
 /**
  * macOS platform adapter.
- * - data directory: ~/Library/Application Support/com.patrick.kankanshoucang
+ * - data directory: ~/Library/Application Support/com.patrick.shoucang
  * - executable discovery: Homebrew /usr/local paths, then `command -v` via zsh
  * - open folder / open browser URL: `open`
  */

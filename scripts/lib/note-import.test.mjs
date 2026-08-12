@@ -37,7 +37,7 @@ test('drag payload round-trips without network access', () => {
 });
 
 test('card drag payload preserves the anonymous resolver token', () => {
-  const payload = `KANKAN_CARD:${JSON.stringify({
+  const payload = `SHOUCANG_CARD:${JSON.stringify({
     id: '64cb12340000000001020304',
     sourceUrl,
     title: '卡片标题',

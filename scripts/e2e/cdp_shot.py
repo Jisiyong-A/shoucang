@@ -1,4 +1,4 @@
-"""CDP screenshot driver: capture KANKAN UI states to
+"""CDP screenshot driver: capture SHOUCANG UI states to
 docs/windows-port/screenshots/. Usage: python cdp_shot.py"""
 import base64
 import json

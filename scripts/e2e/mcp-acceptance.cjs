@@ -3,9 +3,9 @@ const { spawn } = require('node:child_process');
 const path = require('node:path');
 const fs = require('node:fs');
 
-const DATA_DIR = 'C:/Users/12155/AppData/Local/com.patrick.kankanshoucang';
+const DATA_DIR = 'C:/Users/12155/AppData/Local/com.patrick.shoucang';
 const NOTES = path.join(DATA_DIR, 'notes.json');
-const SERVER = path.join(__dirname, '..', '..', 'scripts', 'kankan-mcp.mjs');
+const SERVER = path.join(__dirname, '..', '..', 'scripts', 'shoucang-mcp.mjs');
 
 const notes = [
   { id: '64cb1234000000000102a101', title: '鎏金独木舟建造手册', rawContent: '普通正文', ocrText: '', category: '手工', savedAt: '2026-08-01T00:00:00.000Z' },

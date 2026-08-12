@@ -41,9 +41,9 @@ time.sleep(2)
 
 # 2) click import with engine offline
 print('clicking with engine OFFLINE...')
-ev("(document.getElementById('kankan-note-import-button')||{}).click()")
+ev("(document.getElementById('shoucang-note-import-button')||{}).click()")
 time.sleep(2.2)
-after = ev("document.getElementById('kankan-note-import-button')?.textContent || null")
+after = ev("document.getElementById('shoucang-note-import-button')?.textContent || null")
 ready = ev('document.readyState')
 print('button-after:', after)
 print('page readyState:', ready)

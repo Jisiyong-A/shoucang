@@ -50,10 +50,10 @@ def main():
     # strip the chrome.runtime-dependent click handler & button install tail
     cutoff = source.index('function setButtonState')
     core = source[:cutoff]
-    js = core + '\nwindow.__kankanCapture = captureCurrentNote;'
+    js = core + '\nwindow.__shoucangCapture = captureCurrentNote;'
     ev(js)
 
-    note = ev('JSON.stringify(window.__kankanCapture())')
+    note = ev('JSON.stringify(window.__shoucangCapture())')
     print('captured:', note[:300])
     if not note or note == 'undefined':
         print('RESULT: CAPTURE_FAILED')

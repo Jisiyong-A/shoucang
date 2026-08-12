@@ -9,13 +9,13 @@ import {
 
 test('accepts browser URL drags as well as extension payload drags', () => {
   assert.equal(acceptsExternalNoteDrag(['text/uri-list']), true);
-  assert.equal(acceptsExternalNoteDrag(['application/x-kankan-note']), true);
-  assert.equal(acceptsExternalNoteDrag(['application/x-kankan-card']), true);
+  assert.equal(acceptsExternalNoteDrag(['application/x-shoucang-note']), true);
+  assert.equal(acceptsExternalNoteDrag(['application/x-shoucang-card']), true);
   assert.equal(acceptsExternalNoteDrag(['Files']), false);
 });
 
 test('keeps a directly dragged Xiaohongshu card payload intact', () => {
-  const payload = 'KANKAN_CARD:{"id":"64cb12340000000001020304","sourceUrl":"https://www.xiaohongshu.com/explore/64cb12340000000001020304","title":"卡片标题"}';
+  const payload = 'SHOUCANG_CARD:{"id":"64cb12340000000001020304","sourceUrl":"https://www.xiaohongshu.com/explore/64cb12340000000001020304","title":"卡片标题"}';
   assert.equal(selectDraggedNoteInput({ custom: payload, uriList: 'https://example.com' }), payload);
   assert.deepEqual(parseDraggedCardInput(payload), {
     id: '64cb12340000000001020304',
@@ -33,7 +33,7 @@ test('keeps a directly dragged Xiaohongshu card payload intact', () => {
 });
 
 test('prefers the complete extension payload over a URL', () => {
-  const payload = 'KANKAN_NOTE:{"id":"64cb12340000000001020304","title":"测试"}';
+  const payload = 'SHOUCANG_NOTE:{"id":"64cb12340000000001020304","title":"测试"}';
   assert.equal(selectDraggedNoteInput({ plain: payload, uriList: 'https://www.xiaohongshu.com/explore/64cb12340000000001020304' }), payload);
   assert.equal(selectDraggedNoteInput({ custom: payload, plain: 'https://example.com' }), payload);
 });

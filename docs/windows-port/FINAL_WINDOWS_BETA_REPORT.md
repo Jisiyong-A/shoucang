@@ -5,7 +5,7 @@ Version:        0.1.0-beta
 Commit:         2e6b5ba (windows-redesign; 自基线 6c21a5e 起 14 个任务提交)
 Build date:     2026-08-12
 Windows:        Windows 11 build 26300 (x64, zh-CN)
-Installer:      release/windows/KanKan-Favorites-Windows-x64-0.1.0-beta.exe (25.1 MB, NSIS)
+Installer:      release/windows/ShouCang-Favorites-Windows-x64-0.1.0-beta.exe (25.1 MB, NSIS)
 SHA256:         3aeec137b6509fe55cddac8133346412c7149428609299fec2dd07d8a6521615
 OCR:            Windows.Media.Ocr (zh-Hans-CN / en-GB / zh-Hant-TW 实测)
 Known issues:   见 README「已知问题」+ 各阶段报告

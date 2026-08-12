@@ -19,7 +19,7 @@ test('image URL allowlist accepts Xiaohongshu CDN only', () => {
 });
 
 test('localizeNoteMedia saves images and combines local OCR text', async () => {
-  const mediaDirectory = await mkdtemp(path.join(os.tmpdir(), 'kankan-media-test-'));
+  const mediaDirectory = await mkdtemp(path.join(os.tmpdir(), 'shoucang-media-test-'));
   const sourceUrl = 'https://sns-webpic-qc.xhscdn.com/a.png';
   let downloadInit;
 

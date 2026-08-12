@@ -17,18 +17,18 @@ test('win32: LOCAL_APP_DATA_DIR override wins', () => {
   assert.equal(windowsDataDirectory(env, HOME), path.resolve('D:\\custom\\data'));
 });
 
-test('win32: falls back to %LOCALAPPDATA%\\com.patrick.kankanshoucang', () => {
+test('win32: falls back to %LOCALAPPDATA%\\com.patrick.shoucang', () => {
   const env = { LOCALAPPDATA: 'C:\\Users\\tester\\AppData\\Local' };
   assert.equal(
     windowsDataDirectory(env, HOME),
-    path.join('C:\\Users\\tester\\AppData\\Local', 'com.patrick.kankanshoucang'),
+    path.join('C:\\Users\\tester\\AppData\\Local', 'com.patrick.shoucang'),
   );
 });
 
 test('win32: last-resort home fallback without LOCALAPPDATA', () => {
   assert.equal(
     windowsDataDirectory({}, HOME),
-    path.join(HOME, '.kan-kan-shou-cang'),
+    path.join(HOME, '.shoucang'),
   );
 });
 
@@ -36,7 +36,7 @@ test('darwin: macOS Application Support path', () => {
   const env = {};
   assert.equal(
     macosDataDirectory(env, HOME),
-    path.join(HOME, 'Library', 'Application Support', 'com.patrick.kankanshoucang'),
+    path.join(HOME, 'Library', 'Application Support', 'com.patrick.shoucang'),
   );
 });
 
@@ -48,11 +48,11 @@ test('darwin: LOCAL_APP_DATA_DIR override wins', () => {
 });
 
 test('posix: home dot-dir fallback', () => {
-  assert.equal(posixDataDirectory({}, HOME), path.join(HOME, '.kan-kan-shou-cang'));
+  assert.equal(posixDataDirectory({}, HOME), path.join(HOME, '.shoucang'));
 });
 
 test('legacy data directory is only a migration source', () => {
-  assert.equal(legacyDataDirectory(HOME), path.join(HOME, '.kan-kan-shou-cang'));
+  assert.equal(legacyDataDirectory(HOME), path.join(HOME, '.shoucang'));
 });
 
 test('win32 agent candidate shapes (codex / claude)', () => {

@@ -1,4 +1,4 @@
-# UI 组件地图 — KANKAN DOT/GRID
+# UI 组件地图 — SHOUCANG DOT/GRID
 
 > 2026-08-12 · DeskView.tsx 1765 行 → 21 个组件文件（≤300 行/文件）
 

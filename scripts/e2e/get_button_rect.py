@@ -24,7 +24,7 @@ def ev(expr):
 
 info = ev("""
 (() => {
-  const btn = document.getElementById('kankan-note-import-button');
+  const btn = document.getElementById('shoucang-note-import-button');
   if (!btn) return {found: false};
   const r = btn.getBoundingClientRect();
   return {

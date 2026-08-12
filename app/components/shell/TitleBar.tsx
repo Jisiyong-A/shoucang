@@ -57,7 +57,7 @@ export function TitleBar({
               color: 'var(--text)',
             }}
           >
-            KAN KAN
+            收藏
           </div>
           <div
             style={{

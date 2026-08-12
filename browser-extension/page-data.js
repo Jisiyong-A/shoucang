@@ -1,6 +1,6 @@
 (() => {
-  const SOURCE = 'kankan-note-page-data';
-  const REQUEST_EVENT = 'kankan-note-capture-request';
+  const SOURCE = 'shoucang-note-page-data';
+  const REQUEST_EVENT = 'shoucang-note-capture-request';
 
   function noteIdFromLocation() {
     return location.pathname.match(/^\/(?:explore|search_result|discovery\/item)\/([0-9a-f]{24})(?:\/|$)/i)?.[1] || '';

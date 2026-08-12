@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src=".github/assets/icon.png" width="120" alt="看看收藏" />
+<img src=".github/assets/icon.png" width="120" alt="收藏" />
 
-# 看看收藏
+# 收藏
 
 **专治收藏夹吃灰 —— 让存过的小红书笔记，这次真的找得回来。**
 
@@ -74,7 +74,7 @@ flowchart LR
 
 这个项目走的是另一条路：
 
-| | 爬虫工具 | 看看收藏 |
+| | 爬虫工具 | 收藏 |
 |---|---|---|
 | 身份 | 用你的账号登录态发请求 | **匿名请求，不带 Cookie** |
 | 频率 | 批量、定时、自动翻页 | **一次一条，你手动拖才触发** |
@@ -87,7 +87,7 @@ flowchart LR
 
 - 解析请求显式写着 `credentials: 'omit'` —— `scripts/lib/anonymous-note-resolver.mjs:186`
 - 图片下载同样不带凭证 —— `scripts/lib/media-import.mjs:44`
-- UA 是 `KanKanFavorites/0.1 anonymous-local-resolver`，**没有伪装成 Chrome**，平台一看就知道这是谁在请求
+- UA 是 `ShouCangFavorites/0.1 anonymous-local-resolver`，**没有伪装成 Chrome**，平台一看就知道这是谁在请求
 - 没有代理池、没有重试退避、没有 UA 轮换 —— 这些爬虫标配一个都没有
 
 **匿名解析失败时直接抛错，不会回退到你登录着的浏览器** —— 宁可这一条导不进来，也不动你的账号。
@@ -129,13 +129,13 @@ flowchart LR
 ### 1. 装桌面 App
 
 ```bash
-git clone https://github.com/feitangyuan/kankan-shoucang.git
-cd kankan-shoucang
+git clone https://github.com/feitangyuan/shoucang-shoucang.git
+cd shoucang-shoucang
 npm install
 npm run tauri:build
 ```
 
-产物在 `src-tauri/target/release/bundle/`，装完打开「看看收藏」。
+产物在 `src-tauri/target/release/bundle/`，装完打开「收藏」。
 
 ### 2. 装 Chrome 扩展
 
@@ -157,20 +157,20 @@ App 里点「浏览器插件」按钮会自动帮你打开 Chrome 扩展页和�
 
 这是我自己最常用的功能：**让 AI 直接查我的收藏当资料**。
 
-App 里点「连接 Agent」，选 Claude Code 或 Codex，它会自动注册一个叫 `kankan-notes` 的 MCP server。之后重开一个会话就能用了。
+App 里点「连接 Agent」，选 Claude Code 或 Codex，它会自动注册一个叫 `shoucang-notes` 的 MCP server。之后重开一个会话就能用了。
 
 手动配置的话：
 
 ```bash
 # Claude Code
-claude mcp add --scope user kankan-notes \
-  -e "LOCAL_APP_DATA_DIR=$HOME/Library/Application Support/com.patrick.kankanshoucang" \
-  -- node /path/to/scripts/kankan-mcp.mjs
+claude mcp add --scope user shoucang-notes \
+  -e "LOCAL_APP_DATA_DIR=$HOME/Library/Application Support/com.patrick.shoucang" \
+  -- node /path/to/scripts/shoucang-mcp.mjs
 
 # Codex
-codex mcp add kankan-notes \
-  --env "LOCAL_APP_DATA_DIR=$HOME/Library/Application Support/com.patrick.kankanshoucang" \
-  -- node /path/to/scripts/kankan-mcp.mjs
+codex mcp add shoucang-notes \
+  --env "LOCAL_APP_DATA_DIR=$HOME/Library/Application Support/com.patrick.shoucang" \
+  -- node /path/to/scripts/shoucang-mcp.mjs
 ```
 
 提供两个**只读**工具：
@@ -205,7 +205,7 @@ codex mcp add kankan-notes \
 ## 💾 数据存在哪
 
 ```
-~/Library/Application Support/com.patrick.kankanshoucang/
+~/Library/Application Support/com.patrick.shoucang/
 ├── notes.json          # 所有笔记的正文、OCR、元数据
 ├── media/<noteId>/     # 每条笔记的配图
 └── settings.json
@@ -283,7 +283,7 @@ Windows 重构版在保留全部核心能力的同时做了平台适配：
 
 - **不需要用户安装 Node.js**：安装包内置便携 Node 运行时（`resources/node/node.exe`），sidecar 由 Tauri 壳直接拉起（`CREATE_NO_WINDOW`，无控制台闪烁）
 - **本地 OCR 改用 Windows 原生引擎**：`Windows.Media.Ocr`（WinRT）经 `scripts/windows-ocr.ps1` 调用，零额外依赖，识别语言跟随系统语言包（zh-Hans-CN / en-GB / zh-Hant-TW 等）。`/health` 会报告 OCR 引擎状态
-- **数据目录**：`%LOCALAPPDATA%\com.patrick.kankanshoucang`（macOS 路径不变）
+- **数据目录**：`%LOCALAPPDATA%\com.patrick.shoucang`（macOS 路径不变）
 - **插件设置**：自动打开资源管理器 + Chrome/Edge 扩展页
 - **Agent 检测**：`where` + 常见安装路径（codex/claude）
 
@@ -291,27 +291,27 @@ Windows 重构版在保留全部核心能力的同时做了平台适配：
 
 ```bash
 # Hermes（已内置验证）
-hermes mcp add kankan-notes --command node \
-  --env "LOCAL_APP_DATA_DIR=%LOCALAPPDATA%\com.patrick.kankanshoucang" \
-  --args "D:\path\to\scripts\kankan-mcp.mjs"
-hermes mcp test kankan-notes
+hermes mcp add shoucang-notes --command node \
+  --env "LOCAL_APP_DATA_DIR=%LOCALAPPDATA%\com.patrick.shoucang" \
+  --args "D:\path\to\scripts\shoucang-mcp.mjs"
+hermes mcp test shoucang-notes
 
 # Codex / Claude Code：应用内「Agent」设置面板一键连接
 # 或手动：
-codex mcp add kankan-notes --env LOCAL_APP_DATA_DIR=... -- node scripts/kankan-mcp.mjs
-claude mcp add --scope user kankan-notes -e LOCAL_APP_DATA_DIR=... -- node scripts/kankan-mcp.mjs
+codex mcp add shoucang-notes --env LOCAL_APP_DATA_DIR=... -- node scripts/shoucang-mcp.mjs
+claude mcp add --scope user shoucang-notes -e LOCAL_APP_DATA_DIR=... -- node scripts/shoucang-mcp.mjs
 ```
 
 MCP 工具：`search_saved_notes`（正文/OCR/标签/作者/分类搜索）、`read_saved_note`（完整正文 + 图片 OCR）。只读本机数据，不触碰小红书账号。
 
 ## 🪟 Windows Beta 使用说明（v0.1.0-beta）
 
-- **安装**：运行 `release/windows/KanKan-Favorites-Windows-x64-0.1.0-beta.exe`
+- **安装**：运行 `release/windows/ShouCang-Favorites-Windows-x64-0.1.0-beta.exe`
   （SHA256 见同目录 SHA256SUMS.txt）。无需安装 Node / Python / Rust。
-- **数据位置**：`%LOCALAPPDATA%\com.patrick.kankanshoucang\`
+- **数据位置**：`%LOCALAPPDATA%\com.patrick.shoucang\`
   （notes.json + media/；重装/卸载均保留）。
 - **浏览器扩展**：设置页 → BROWSER BRIDGE → OPEN CHROME/EDGE SETUP，
-  开发者模式 → 加载已解压扩展 → 选择打开的文件夹。拖放或点击「拖到看看收藏」导入。
+  开发者模式 → 加载已解压扩展 → 选择打开的文件夹。拖放或点击「拖到收藏」导入。
 - **OCR**：Windows 内置 Windows.Media.Ocr（本地、中文优先、无云）。设置页显示引擎与语言。
 - **Agent/MCP**：设置页 → AGENT BRIDGE → CONNECT HERMES/CODEX/CLAUDE
   （只读 search_saved_notes / read_saved_note）。

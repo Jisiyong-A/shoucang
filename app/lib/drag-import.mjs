@@ -1,8 +1,8 @@
-const DRAG_PAYLOAD_PREFIX = 'KANKAN_NOTE:';
-const CARD_DRAG_PAYLOAD_PREFIX = 'KANKAN_CARD:';
+const DRAG_PAYLOAD_PREFIX = 'SHOUCANG_NOTE:';
+const CARD_DRAG_PAYLOAD_PREFIX = 'SHOUCANG_CARD:';
 const SUPPORTED_DRAG_TYPES = new Set([
-  'application/x-kankan-note',
-  'application/x-kankan-card',
+  'application/x-shoucang-note',
+  'application/x-shoucang-card',
   'text/plain',
   'text/uri-list',
   'text/x-moz-url',

@@ -41,7 +41,7 @@ def main(note_url):
     send('Page.navigate', {'url': note_url})
     time.sleep(12)
     print('title:', ev('document.title'))
-    btn = ev("document.getElementById('kankan-note-import-button')?.textContent || null")
+    btn = ev("document.getElementById('shoucang-note-import-button')?.textContent || null")
     print('button:', btn)
     if not btn:
         print('RESULT: BUTTON_NOT_FOUND')
@@ -50,9 +50,9 @@ def main(note_url):
 
     # click import
     print('clicking import...')
-    ev("(document.getElementById('kankan-note-import-button')||{}).click()")
+    ev("(document.getElementById('shoucang-note-import-button')||{}).click()")
     time.sleep(18)
-    after = ev("document.getElementById('kankan-note-import-button')?.textContent || null")
+    after = ev("document.getElementById('shoucang-note-import-button')?.textContent || null")
     print('button-after:', after)
     with urllib.request.urlopen(f'{API}/notes', timeout=10) as r:
         notes = json.load(r).get('notes', [])

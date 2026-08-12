@@ -1,1 +1,1 @@
-3aeec137b6509fe55cddac8133346412c7149428609299fec2dd07d8a6521615 *KanKan-Favorites-Windows-x64-0.1.0-beta.exe
+e319d736240f971d0af50d737fda0ff2d76b24984046672562e3cf24e045042d *ShouCang-Windows-x64-0.1.0-beta.exe

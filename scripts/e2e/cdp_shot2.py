@@ -10,7 +10,7 @@ import websocket
 
 CDP = 'http://127.0.0.1:9229'
 OUT = r'D:\hermes\kankan-shoucang\docs\windows-port\screenshots'
-NOTES = r'C:\Users\12155\AppData\Local\com.patrick.kankanshoucang\notes.json'
+NOTES = r'C:\Users\12155\AppData\Local\com.patrick.shoucang\notes.json'
 NOTES_BAK = NOTES + '.bak'
 
 with urllib.request.urlopen(f'{CDP}/json/list', timeout=5) as r:

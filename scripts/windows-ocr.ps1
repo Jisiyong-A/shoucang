@@ -1,4 +1,4 @@
-# 看看收藏 · Windows local OCR via Windows.Media.Ocr (WinRT)
+# 收藏 · Windows local OCR via Windows.Media.Ocr (WinRT)
 # Pure local, no cloud. Works on Windows 10 1809+ / Windows 11.
 # Usage:
 #   powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File windows-ocr.ps1 -ImagePaths a.jpg b.png

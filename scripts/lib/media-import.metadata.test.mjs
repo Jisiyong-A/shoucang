@@ -12,7 +12,7 @@ const tinyPng = Buffer.from(
 );
 
 test('localizeNoteMedia persists OCR engine metadata from the facade shape', async () => {
-  const mediaDirectory = await mkdtemp(path.join(os.tmpdir(), 'kankan-media-meta-test-'));
+  const mediaDirectory = await mkdtemp(path.join(os.tmpdir(), 'shoucang-media-meta-test-'));
   const sourceUrl = 'https://sns-webpic-qc.xhscdn.com/a.png';
 
   try {
@@ -46,7 +46,7 @@ test('localizeNoteMedia persists OCR engine metadata from the facade shape', asy
 });
 
 test('localizeNoteMedia skips metadata for legacy array-shaped runners', async () => {
-  const mediaDirectory = await mkdtemp(path.join(os.tmpdir(), 'kankan-media-meta-test-'));
+  const mediaDirectory = await mkdtemp(path.join(os.tmpdir(), 'shoucang-media-meta-test-'));
   const sourceUrl = 'https://sns-webpic-qc.xhscdn.com/a.png';
 
   try {

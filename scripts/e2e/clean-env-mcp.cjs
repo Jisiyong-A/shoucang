@@ -2,8 +2,8 @@
 const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 
-const DIR = 'C:/Users/12155/AppData/Local/com.patrick.kankanshoucang';
-const SERVER = 'C:/Users/12155/AppData/Local/看看收藏/kankan-mcp.mjs';
+const DIR = 'C:/Users/12155/AppData/Local/com.patrick.shoucang';
+const SERVER = 'C:/Users/12155/AppData/Local/收藏/shoucang-mcp.mjs';
 
 fs.writeFileSync(DIR + '/notes.json', JSON.stringify([
   { id: '64cb1234000000000102b001', title: '干净环境测试笔记', rawContent: '正文', ocrText: '独有OCR词', category: '测试', savedAt: '2026-08-12T00:00:00.000Z' },
