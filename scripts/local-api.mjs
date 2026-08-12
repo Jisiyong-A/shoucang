@@ -311,7 +311,9 @@ async function readNotesFile(filePath) {
   try {
     const raw = JSON.parse(await readFile(filePath, 'utf8'));
     return Array.isArray(raw) ? raw.filter(isUsableStoredNote) : [];
-  } catch {
+  } catch (error) {
+    // Corrupt archive must not crash the app, but must stay diagnosable.
+    console.error(`[kankan] notes.json 解析失败（${filePath}）:`, error instanceof Error ? error.message : String(error));
     return [];
   }
 }
