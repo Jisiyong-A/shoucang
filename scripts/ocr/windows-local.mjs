@@ -5,6 +5,7 @@
  * en-GB, zh-Hant-TW, ...). Fully local, no cloud, no Python.
  */
 import { execFile } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
@@ -17,6 +18,28 @@ const defaultOcrScriptPath = path.resolve(moduleDirectory, '..', 'windows-ocr.ps
 
 export const ENGINE_NAME = 'windows';
 
+let cachedPowerShell = null;
+
+/**
+ * Windows 11 may lack the System32\powershell.exe shim; the real binary
+ * lives in WindowsPowerShell\v1.0. Prefer PATH resolution, fall back to
+ * the absolute well-known path so a minimal PATH cannot break OCR.
+ */
+function resolvePowerShellExecutable() {
+  if (cachedPowerShell) return cachedPowerShell;
+  const candidates = [
+    path.join(process.env.SystemRoot || 'C:\\\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'),
+    'powershell.exe',
+  ];
+  for (const candidate of candidates) {
+    if (candidate.includes(path.sep) && !existsSync(candidate)) continue;
+    cachedPowerShell = candidate;
+    return candidate;
+  }
+  cachedPowerShell = candidates[0];
+  return cachedPowerShell;
+}
+
 /**
  * @param {string[]} imagePaths
  * @param {object} [options] { ocrScriptPath?, timeoutMs? }
@@ -28,7 +51,7 @@ export async function runWindowsOcr(imagePaths, options = {}) {
   const nativePaths = imagePaths.map((p) => path.resolve(p).replace(/\//g, '\\'));
   const scriptPath = options.ocrScriptPath || defaultOcrScriptPath;
   try {
-    const { stdout } = await execFileAsync('powershell.exe', [
+    const { stdout } = await execFileAsync(resolvePowerShellExecutable(), [
       '-NoProfile',
       '-NonInteractive',
       '-ExecutionPolicy',
@@ -55,7 +78,7 @@ export async function probeWindowsOcr(scriptPath = defaultOcrScriptPath) {
     return { available: false, languages: [], error: 'not windows' };
   }
   try {
-    const { stdout } = await execFileAsync('powershell.exe', [
+    const { stdout } = await execFileAsync(resolvePowerShellExecutable(), [
       '-NoProfile',
       '-NonInteractive',
       '-ExecutionPolicy',
