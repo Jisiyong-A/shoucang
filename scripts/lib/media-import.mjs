@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { runLocalOcr } from './ocr-adapter.mjs';
+import { runOcr, getOcrEngineInfo } from '../ocr/index.mjs';
 
 const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 const MAX_REDIRECTS = 3;
@@ -120,13 +120,23 @@ export async function localizeNoteMedia(note, options) {
 
   let ocrResults = [];
   let ocrError = '';
+  let ocrEngine = null;
+  let ocrEngineVersion = null;
   try {
-    ocrResults = await (options.ocrRunner || runLocalOcr)(
+    const ocrOutcome = await (options.ocrRunner || runOcr)(
       successful.map((item) => item.filePath),
+      { concurrency: options.ocrConcurrency || 1 },
     );
+    // facade returns { results, engine, engineVersion }; legacy runners
+    // return a bare array.
+    ocrResults = Array.isArray(ocrOutcome) ? ocrOutcome : (ocrOutcome?.results || []);
+    ocrEngine = Array.isArray(ocrOutcome) ? null : (ocrOutcome?.engine || null);
+    ocrEngineVersion = Array.isArray(ocrOutcome) ? null : (ocrOutcome?.engineVersion || null);
   } catch (error) {
     ocrError = error instanceof Error ? error.message : '本地 OCR 失败';
   }
+  const ocrEngineInfo = getOcrEngineInfo(ocrEngine);
+  const ocrProcessedAt = new Date().toISOString();
   const ocrByPath = new Map(ocrResults.map((result) => [result.path, result]));
   const imageOcr = successful.map((item) => {
     const result = ocrByPath.get(item.filePath);
@@ -147,6 +157,12 @@ export async function localizeNoteMedia(note, options) {
     coverUrl: localImageUrls[0] || note.coverUrl || '',
     imageOcr,
     ocrText,
+    // OCR cache metadata: lets a future engine-version bump re-run OCR.
+    ...(ocrEngine ? {
+      ocrEngine: ocrEngineInfo.engine,
+      ocrEngineVersion: ocrEngineInfo.engineVersion,
+      ocrProcessedAt,
+    } : {}),
     mediaStatus: failedDownloads === 0 && !ocrError ? 'ready' : 'partial',
     mediaError: [
       failedDownloads ? `${failedDownloads} 张图片保存失败` : '',

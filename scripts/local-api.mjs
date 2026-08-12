@@ -10,7 +10,7 @@ import { promisify } from 'node:util';
 import { inferCategoryFromNote } from './lib/category-inference.mjs';
 import { recoverCachedNoteCovers } from './lib/cache-cover-recovery.mjs';
 import { localizeNoteMedia } from './lib/media-import.mjs';
-import { probeLocalOcr } from './lib/ocr-adapter.mjs';
+import { probeLocalOcr } from './ocr/index.mjs';
 import * as platform from './platform/index.mjs';
 import { resolveAnonymousNote } from './lib/anonymous-note-resolver.mjs';
 import {

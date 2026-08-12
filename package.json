@@ -7,7 +7,7 @@
     "dev": "next dev",
     "build": "next build --webpack",
     "start": "next start",
-    "test": "node --test scripts/lib/*.test.mjs scripts/platform/*.test.mjs",
+    "test": "node --test scripts/lib/*.test.mjs scripts/platform/*.test.mjs scripts/ocr/*.test.mjs",
     "desktop:preview": "node ./scripts/desktop-preview.mjs",
     "local-api": "node ./scripts/local-api.mjs",
     "tauri:build": "tauri build",

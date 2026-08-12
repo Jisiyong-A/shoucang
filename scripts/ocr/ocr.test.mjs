@@ -4,8 +4,8 @@ import test from 'node:test';
 import {
   normalizeWindowsOcrText,
   parseWindowsOcrOutput,
-  probeLocalOcr,
-} from './ocr-adapter.mjs';
+} from './normalize.mjs';
+import { probeLocalOcr } from './index.mjs';
 
 // Windows-only live probe: engine must be truthy and shaped correctly.
 // Skipped elsewhere (probe would return the unsupported-platform shape).
