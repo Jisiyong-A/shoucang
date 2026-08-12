@@ -9,6 +9,7 @@ export type RailGroup = {
   name: string;
   kind: 'inbox' | 'custom';
   noteCount: number;
+  color?: string;
 };
 
 export function Sidebar({

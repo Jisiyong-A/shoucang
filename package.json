@@ -5,7 +5,7 @@
   "license": "AGPL-3.0-or-later",
   "scripts": {
     "dev": "next dev",
-    "build": "next build --webpack",
+    "build": "next build --webpack && node ./scripts/sync-models.cjs",
     "start": "next start",
     "test": "node --test scripts/lib/*.test.mjs scripts/platform/*.test.mjs scripts/ocr/*.test.mjs",
     "desktop:preview": "node ./scripts/desktop-preview.mjs",
@@ -15,6 +15,7 @@
     "lint": "eslint app scripts next.config.ts"
   },
   "dependencies": {
+    "@huggingface/transformers": "^4.2.0",
     "framer-motion": "^12.34.3",
     "lucide-react": "^0.575.0",
     "next": "16.1.6",
@@ -23,6 +24,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@tauri-apps/api": "^2.11.1",
     "@tauri-apps/cli": "^2.10.0",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -30,6 +32,6 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "5.9.3"
   }
 }
