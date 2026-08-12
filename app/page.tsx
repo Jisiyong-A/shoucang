@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from 'react';
 import { DeskView } from './components/DeskView';
-import { BootstrapStatus } from './components/BootstrapStatus';
 import { useApp } from './lib/store';
 import { getNotes } from './lib/xhs-client';
 
@@ -42,7 +41,6 @@ export default function Home() {
   return (
     <>
       <DeskView />
-      <BootstrapStatus />
     </>
   );
 }
