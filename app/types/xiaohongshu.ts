@@ -28,6 +28,9 @@ export interface Note {
   savedAt: Date;
   tags: string[];
   type?: 'video' | 'normal';
+  videoUrl?: string;
+  videoLocalPath?: string;
+  videoError?: string;
   imageAspect?: 'tall' | 'medium' | 'short' | 'normal';
 }
 

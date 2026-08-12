@@ -18,11 +18,11 @@ import { env, pipeline } from '@huggingface/transformers';
 env.allowLocalModels = true;
 env.localModelPath = '/models/';
 
-const MODEL_ID = 'bge-small-zh-v1.5';
-const EMBEDDING_DIM = 512;
+const MODEL_ID = 'multilingual-e5-large';
+const EMBEDDING_DIM = 1024;
 const DB_NAME = 'shoucang-semantic';
 const DB_STORE = 'vectors';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let embedderPromise = null;
 let cacheDbPromise = null;
@@ -32,7 +32,12 @@ function openCacheDb() {
   cacheDbPromise = new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
-      request.result.createObjectStore(DB_STORE);
+      const db = request.result;
+      // v2: e5 model -> 1024-d vectors; wipe any v1 (512-d bge) cache.
+      if (db.objectStoreNames.contains(DB_STORE)) {
+        db.deleteObjectStore(DB_STORE);
+      }
+      db.createObjectStore(DB_STORE);
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
@@ -68,12 +73,15 @@ function normalizeEmbedding(output) {
   return vector;
 }
 
-/** Embed a single text into a normalized 512-d vector. */
-export async function embedText(text) {
+/** Embed a single text into a normalized vector.
+ *  e5 models use role prefixes: 'query: ' for search input,
+ *  'passage: ' for indexed documents. */
+export async function embedText(text, role = 'query') {
   const embedder = await getEmbedder();
+  const prefix = role === 'passage' ? 'passage: ' : 'query: ';
   const truncated = String(text || '').slice(0, 800);
   if (!truncated.trim()) return null;
-  const output = await embedder(truncated, { pooling: 'none', normalize: false });
+  const output = await embedder(prefix + truncated, { pooling: 'none', normalize: false });
   return normalizeEmbedding(output);
 }
 
@@ -131,7 +139,7 @@ export async function indexNotesInBackground(notes, { onProgress } = {}) {
       indexed += 1;
       continue;
     }
-    const vector = await embedText(noteEmbeddingText(note));
+    const vector = await embedText(noteEmbeddingText(note), 'passage');
     if (vector) {
       await putCachedVector(note.id, vector);
       indexed += 1;

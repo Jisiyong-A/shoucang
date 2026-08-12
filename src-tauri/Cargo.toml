@@ -5,12 +5,13 @@ description = "Local desktop shell for 收藏"
 authors = ["Patrick"]
 edition = "2021"
 
-[lib]
-name = "shoucang_lib"
-crate-type = ["staticlib", "cdylib", "rlib"]
-
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
+
+# rustc 1.95 LLVM crashes at opt-level=3 on this crate (out of memory);
+# opt-level=2 compiles cleanly with negligible runtime difference.
+[profile.release]
+opt-level = 2
 
 [dependencies]
 tauri = { version = "2", features = [] }

@@ -12,6 +12,7 @@ export function TitleBar({
   onOpenSetup,
   onImportClick,
   importing,
+  compact = false,
 }: {
   searchQuery: string;
   onSearchChange: (value: string) => void;
@@ -19,6 +20,8 @@ export function TitleBar({
   onOpenSetup: (panel: SetupPanel) => void;
   onImportClick: () => void;
   importing: boolean;
+  /** compact = Google Window Size Class "compact" (<600dp): phone layouts */
+  compact?: boolean;
 }) {
   return (
     <header
@@ -59,17 +62,19 @@ export function TitleBar({
           >
             收藏
           </div>
-          <div
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 9,
-              letterSpacing: '0.24em',
-              color: 'var(--text-faint)',
-              textTransform: 'uppercase',
-            }}
-          >
-            Collection System
-          </div>
+          {!compact && (
+            <div
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 9,
+                letterSpacing: '0.24em',
+                color: 'var(--text-faint)',
+                textTransform: 'uppercase',
+              }}
+            >
+              Collection System
+            </div>
+          )}
         </div>
       </div>
 
@@ -117,22 +122,26 @@ export function TitleBar({
           <Download size={13} strokeWidth={1.8} />
           IMPORT
         </Button>
-        <Button onClick={() => onOpenSetup('extension')} title="浏览器插件">
-          <Puzzle size={13} strokeWidth={1.8} />
-          EXTENSION
-        </Button>
-        <Button onClick={() => onOpenSetup('agent')} title="Agent MCP 连接">
-          <Bot size={13} strokeWidth={1.8} />
-          AGENT
-        </Button>
+        {!compact && (
+          <>
+            <Button onClick={() => onOpenSetup('extension')} title="浏览器插件">
+              <Puzzle size={13} strokeWidth={1.8} />
+              EXTENSION
+            </Button>
+            <Button onClick={() => onOpenSetup('agent')} title="Agent MCP 连接">
+              <Bot size={13} strokeWidth={1.8} />
+              AGENT
+            </Button>
+          </>
+        )}
       </div>
 
       {/* Local status */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, paddingLeft: 4 }}>
         <StatusLight state={health.ok ? 'ok' : 'error'} blink={!health.ok} label="local engine" />
-        <Badge tone={health.ok ? 'ok' : 'error'}>
+        {!compact && <Badge tone={health.ok ? 'ok' : 'error'}>
           LOCAL {health.ok ? '● READY' : 'OFFLINE'}
-        </Badge>
+        </Badge>}
       </div>
     </header>
   );

@@ -143,6 +143,29 @@ function tagsFromNote(note) {
   return Array.from(new Set(tags)).slice(0, 20);
 }
 
+function videoUrlFromNote(note) {
+  const candidates = [];
+  if (note?.video) {
+    const v = note.video;
+    const push = (value) => {
+      if (typeof value === 'string' && /^https?:\/\//.test(value)) candidates.push(value);
+    };
+    push(v.url);
+    push(v.masterUrl);
+    // stream sources (h264/aac), XHS serves these via masterUrl / backupUrls
+    for (const streamKey of ['h264', 'h265', 'aac']) {
+      const stream = v?.media?.video?.[streamKey] || v?.media?.[streamKey] || v?.[streamKey];
+      if (Array.isArray(stream)) {
+        for (const entry of stream) {
+          push(entry?.masterUrl);
+          for (const backup of entry?.backupUrls || []) push(backup);
+        }
+      }
+    }
+  }
+  return candidates[0] || '';
+}
+
 function notePayloadFromHtml(html, noteId, sourceUrl) {
   // 风控/失效页面 detection: Xiaohongshu serves /404/sec_* pages (which
   // contain no note data) when the anonymous request is challenged. Never
@@ -160,14 +183,16 @@ function notePayloadFromHtml(html, noteId, sourceUrl) {
 
   const user = note.user || note.author || {};
   const imageUrls = imageUrlsFromNote(note);
+  const videoUrl = videoUrlFromNote(note);
   const title = firstString(note, ['title', 'displayTitle']);
   const content = firstString(note, ['desc', 'description', 'content']);
-  if (!title && !content && imageUrls.length === 0) {
+  if (!title && !content && imageUrls.length === 0 && !videoUrl) {
     throw new Error('匿名解析返回的笔记内容为空');
   }
-  // Guard: a valid note must carry its own images; a note with a bare
-  // cover and no body is almost certainly a recommendation-card artifact.
-  if (imageUrls.length === 0) {
+  // Guard: a valid note must carry its own images (or be a video with a
+  // cover); a note with a bare cover and no body is almost certainly a
+  // recommendation-card artifact.
+  if (imageUrls.length === 0 && !videoUrl) {
     throw new Error('匿名解析没有读到笔记图片（风控或链接失效），请稍后重试');
   }
 
@@ -178,6 +203,7 @@ function notePayloadFromHtml(html, noteId, sourceUrl) {
     content,
     imageUrls,
     coverUrl: imageUrls[0] || '',
+    videoUrl,
     author: {
       name: firstString(user, ['nickname', 'name', 'nickName']),
       avatar: firstString(user, ['avatar', 'image']),

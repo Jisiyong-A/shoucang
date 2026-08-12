@@ -1,4 +1,5 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { createWriteStream } from 'node:fs';
 import path from 'node:path';
 
 import { runOcr, getOcrEngineInfo } from '../ocr/index.mjs';
@@ -69,6 +70,56 @@ async function downloadImage(url, noteDirectory, index, fetchImpl) {
   const filePath = path.join(noteDirectory, fileName);
   await writeFile(filePath, buffer);
   return { fileName, filePath, sourceUrl: url };
+}
+
+const MAX_VIDEO_BYTES = 300 * 1024 * 1024; // 300MB cap for a single video
+const VIDEO_TIMEOUT_MS = 10 * 60 * 1000;
+
+/** Stream a remote video to <noteDir>/video.mp4. Best-effort: failures
+ *  never block the import — the note stays saved with images only. */
+async function downloadVideo(url, noteDirectory, fetchImpl) {
+  if (!/^https?:\/\//.test(url || '')) return null;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), VIDEO_TIMEOUT_MS);
+  try {
+    const response = await (fetchImpl || fetch)(url, {
+      signal: controller.signal,
+      redirect: 'follow',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36',
+        Referer: 'https://www.xiaohongshu.com/',
+      },
+    });
+    if (!response.ok || !response.body) return null;
+    const declaredLength = Number.parseInt(response.headers.get('content-length') || '0', 10);
+    if (declaredLength > MAX_VIDEO_BYTES) return null;
+
+    const filePath = path.join(noteDirectory, 'video.mp4');
+    const fileStream = createWriteStream(filePath);
+    let received = 0;
+    const reader = response.body.getReader();
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      received += value.byteLength;
+      if (received > MAX_VIDEO_BYTES) {
+        await fileStream.destroy();
+        await rm(filePath, { force: true }).catch(() => {});
+        return null;
+      }
+      fileStream.write(Buffer.from(value));
+    }
+    await new Promise((resolve, reject) => {
+      fileStream.end(resolve);
+      fileStream.on('error', reject);
+    });
+    return { fileName: 'video.mp4', filePath, sourceUrl: url };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function mapWithConcurrency(values, concurrency, callback) {
@@ -150,6 +201,18 @@ export async function localizeNoteMedia(note, options) {
   const ocrText = imageOcr.map((item) => item.text).filter(Boolean).join('\n\n');
   const failedDownloads = downloads.length - successful.length;
 
+  // Video (best-effort, never blocks the import)
+  let videoLocalPath = '';
+  let videoError = '';
+  if (note.videoUrl) {
+    const videoResult = await downloadVideo(note.videoUrl, noteDirectory, options.fetchImpl);
+    if (videoResult?.filePath) {
+      videoLocalPath = `${options.publicBaseUrl}/media/${note.id}/video.mp4`;
+    } else {
+      videoError = '视频下载失败（已保留图片）';
+    }
+  }
+
   return {
     ...note,
     sourceImageUrls: sourceUrls,
@@ -157,16 +220,19 @@ export async function localizeNoteMedia(note, options) {
     coverUrl: localImageUrls[0] || note.coverUrl || '',
     imageOcr,
     ocrText,
+    videoLocalPath,
+    videoError,
     // OCR cache metadata: lets a future engine-version bump re-run OCR.
     ...(ocrEngine ? {
       ocrEngine: ocrEngineInfo.engine,
       ocrEngineVersion: ocrEngineInfo.engineVersion,
       ocrProcessedAt,
     } : {}),
-    mediaStatus: failedDownloads === 0 && !ocrError ? 'ready' : 'partial',
+    mediaStatus: failedDownloads === 0 && !ocrError && !videoError ? 'ready' : 'partial',
     mediaError: [
       failedDownloads ? `${failedDownloads} 张图片保存失败` : '',
       ocrError,
+      videoError,
     ].filter(Boolean).join('；'),
   };
 }

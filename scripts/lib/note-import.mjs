@@ -133,6 +133,7 @@ export function normalizeImportedNote(payload) {
 
   const imageUrls = normalizeImageUrls(payload.imageUrls);
   const type = payload.type === 'video' ? 'video' : 'normal';
+  const videoUrl = cleanText(payload.videoUrl, 5000);
 
   return {
     id: noteId.toLowerCase(),
@@ -145,6 +146,7 @@ export function normalizeImportedNote(payload) {
     imageUrls,
     sourceImageUrls: imageUrls,
     imageOcr: [],
+    videoUrl,
     mediaStatus: imageUrls.length > 0 ? 'pending' : 'none',
     mediaError: '',
     author: {

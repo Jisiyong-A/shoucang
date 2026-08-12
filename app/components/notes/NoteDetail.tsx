@@ -109,12 +109,34 @@ export function NoteDetail({
           display: 'flex',
         }}
       >
-        <NoteGallery
-          imageUrls={imageUrls}
-          activeImageIndex={activeImageIndex}
-          onSelect={setActiveImageIndex}
-          onImageFailed={markImageFailed}
-        />
+        {note.videoLocalPath ? (
+          <div
+            style={{
+              flex: 1.2,
+              minWidth: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: '#050506',
+              borderRight: 'var(--border-strong)',
+            }}
+          >
+            <video
+              controls
+              playsInline
+              preload="metadata"
+              src={note.videoLocalPath}
+              style={{ width: '100%', height: '100%', maxHeight: 'min(86vh, 820px)', objectFit: 'contain' }}
+            />
+          </div>
+        ) : (
+          <NoteGallery
+            imageUrls={imageUrls}
+            activeImageIndex={activeImageIndex}
+            onSelect={setActiveImageIndex}
+            onImageFailed={markImageFailed}
+          />
+        )}
 
         {/* NOTE DATA — right geometric block */}
         <div

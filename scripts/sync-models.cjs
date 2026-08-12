@@ -27,5 +27,13 @@ function copyDir(from, to) {
 }
 
 copyDir(src, dst);
-const bytes = fs.statSync(path.join(dst, 'bge-small-zh-v1.5', 'onnx', 'model_quantized.onnx')).size;
-console.log(`[sync-models] models synced to dist/ (quantized onnx ${(bytes / 1024 / 1024).toFixed(1)} MB)`);
+let totalBytes = 0;
+for (const modelDir of fs.readdirSync(src)) {
+  const onnxDir = path.join(dst, modelDir, 'onnx');
+  if (fs.existsSync(onnxDir)) {
+    for (const file of fs.readdirSync(onnxDir)) {
+      totalBytes += fs.statSync(path.join(onnxDir, file)).size;
+    }
+  }
+}
+console.log(`[sync-models] models synced to dist/ (${(totalBytes / 1024 / 1024).toFixed(1)} MB)`);

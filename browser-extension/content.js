@@ -121,6 +121,31 @@ function captureCurrentNote() {
     || metaContent('description')
     || metaContent('og:description');
   const imageUrls = collectImages();
+  const videoUrl = cachedPageData?.videoUrl
+    || (() => {
+      try {
+        const video = document.querySelector('video');
+        if (video?.src && /^https?:\/\//.test(video.src)) return video.src;
+        const source = document.querySelector('video source[src]');
+        if (source?.src && /^https?:\/\//.test(source.src)) return source.src;
+        // __INITIAL_STATE__ fallback
+        const marker = 'window.__INITIAL_STATE__=';
+        const script = Array.from(document.querySelectorAll('script')).find((el) => el.textContent.includes(marker));
+        if (script) {
+          const start = script.textContent.indexOf(marker) + marker.length;
+          const end = script.textContent.indexOf('</script>', start);
+          const serialized = script.textContent.slice(start, end === -1 ? undefined : end).trim().replace(/;$/, '').replace(/\bundefined\b/g, 'null');
+          const state = JSON.parse(serialized);
+          const detail = state?.note?.noteDetailMap?.[id]?.note;
+          const v = detail?.video;
+          const candidate = v?.url || v?.masterUrl || v?.media?.video?.h264?.[0]?.masterUrl || '';
+          if (/^https?:\/\//.test(candidate)) return candidate;
+        }
+      } catch {
+        // no video on this page — normal image notes hit here
+      }
+      return '';
+    })();
 
   return {
     id,
@@ -129,6 +154,7 @@ function captureCurrentNote() {
     content,
     imageUrls,
     coverUrl: imageUrls[0] || '',
+    videoUrl,
     author: {
       name: cachedPageData?.author?.name
         || firstText(['.author-wrapper .username', '.author-wrapper [class*="name"]', '[class*="author"] .username']),

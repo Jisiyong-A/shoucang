@@ -42,6 +42,8 @@ import { DotMatrix } from './ui/DotMatrix';
 import { TitleBar } from './shell/TitleBar';
 import { Sidebar, RailGroup } from './shell/Sidebar';
 import { TopNav } from './shell/TopNav';
+import { MobileNavBar } from './shell/MobileNavBar';
+import { useWindowSizeClass } from '../lib/use-window-size-class';
 import { StatusBar } from './shell/StatusBar';
 import { NoteGrid } from './notes/NoteGrid';
 import { NoteDetail } from './notes/NoteDetail';
@@ -460,6 +462,10 @@ export function DeskView() {
 
   const canUseLocalService = serviceHealth.source === 'sidecar' && serviceHealth.ok;
 
+  const wc = useWindowSizeClass();
+  const isCompact = wc === 'compact';
+  const mobileNavActive = 'library' as const;
+
 
   const isEmpty = notes.length === 0;
   const hasNoSearchResults = !isEmpty && hasActiveSearch && visibleNotes.length === 0;
@@ -524,6 +530,7 @@ export function DeskView() {
         onOpenSetup={(panel) => void openSetupPanel(panel)}
         onImportClick={() => setImportDialog(true)}
         importing={state.isLoading}
+        compact={isCompact}
       />
 
       {/* Import dialog (paste link) */}
@@ -657,7 +664,7 @@ export function DeskView() {
             minWidth: 0,
             minHeight: 0,
             overflowY: 'auto',
-            padding: '20px 20px 96px',
+            padding: isCompact ? '12px 12px 88px' : '20px 20px 96px',
           }}
         >
           {isEmpty && !state.isLoading && <EmptyState />}
@@ -691,13 +698,34 @@ export function DeskView() {
         </main>
       </div>
 
-      {/* Layer 3: engine / import status */}
-      <StatusBar
-        health={serviceHealth}
-        noteCount={notes.length}
-        ocrCount={ocrCount}
-        onOpenSetup={() => void openSetupPanel('settings')}
-      />
+      {/* Layer 3: engine / import status (hidden on compact; mobile nav shows instead) */}
+      {!isCompact && (
+        <StatusBar
+          health={serviceHealth}
+          noteCount={notes.length}
+          ocrCount={ocrCount}
+          onOpenSetup={() => void openSetupPanel('settings')}
+        />
+      )}
+
+      {/* Mobile bottom navigation (Window Size Class compact, Material 3) */}
+      {isCompact && (
+        <MobileNavBar
+          active={mobileNavActive}
+          onLibrary={() => {
+            setSearchQuery('');
+            setActiveGroup(null);
+            setActiveCategory(null);
+            containerRef.current?.scrollTo({ top: 0 });
+          }}
+          onSearch={() => {
+            const input = document.querySelector<HTMLInputElement>('input[aria-label="搜索收藏"]');
+            input?.focus();
+            input?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }}
+          onSystem={() => void openSetupPanel('settings')}
+        />
+      )}
 
       {/* Detail overlay */}
       <AnimatePresence>
