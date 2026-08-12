@@ -1,6 +1,7 @@
-const { spawn } = require('node:child_process');
-const path = require('node:path');
-const fs = require('node:fs');
+import { spawn } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 // seed sample notes into a temp data dir
 const DATA_DIR = path.join(process.env.TEMP || '.', 'kankan-mcp-test');
@@ -28,7 +29,7 @@ fs.writeFileSync(path.join(DATA_DIR, 'notes.json'), JSON.stringify([
   },
 ], null, 2));
 
-const server = spawn('node', [path.join(__dirname, '..', 'kankan-mcp.mjs')], {
+const server = spawn('node', [path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'kankan-mcp.mjs')], {
   env: { ...process.env, LOCAL_APP_DATA_DIR: DATA_DIR },
   stdio: ['pipe', 'pipe', 'inherit'],
 });

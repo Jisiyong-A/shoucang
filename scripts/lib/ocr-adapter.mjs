@@ -133,3 +133,20 @@ export async function runLocalOcr(imagePaths) {
   if (process.platform === 'win32') return runWindowsOcr(imagePaths);
   return [];
 }
+
+/** Platform dispatch for engine availability probes (startup /health). */
+export async function probeLocalOcr() {
+  if (process.platform === 'darwin') {
+    return { engine: 'vision', available: true, languages: [], error: null };
+  }
+  if (process.platform === 'win32') {
+    const probe = await probeWindowsOcr();
+    return {
+      engine: 'windows',
+      available: probe.available,
+      languages: probe.languages,
+      error: probe.error,
+    };
+  }
+  return { engine: null, available: false, languages: [], error: 'unsupported platform' };
+}

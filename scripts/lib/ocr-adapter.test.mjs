@@ -4,7 +4,18 @@ import test from 'node:test';
 import {
   normalizeWindowsOcrText,
   parseWindowsOcrOutput,
+  probeLocalOcr,
 } from './ocr-adapter.mjs';
+
+// Windows-only live probe: engine must be truthy and shaped correctly.
+// Skipped elsewhere (probe would return the unsupported-platform shape).
+test('probeLocalOcr reports an engine with languages on win32', { skip: process.platform !== 'win32' }, async () => {
+  const probe = await probeLocalOcr();
+  assert.equal(probe.engine, 'windows');
+  assert.equal(typeof probe.available, 'boolean');
+  assert.ok(Array.isArray(probe.languages));
+  assert.ok(probe.languages.length > 0, 'expected at least one recognizer language');
+});
 
 test('normalizeWindowsOcrText removes spaces between CJK glyphs', () => {
   assert.equal(

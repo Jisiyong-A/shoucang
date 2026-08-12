@@ -73,6 +73,7 @@ export function DeskView() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Note | null>(null);
   const [serviceHealth, setServiceHealth] = useState<LocalServiceHealth>({ ok: false, source: 'sidecar' });
+  const [healthChecked, setHealthChecked] = useState(false);
   const [importFeedback, setImportFeedback] = useState<ImportFeedback>(IDLE_IMPORT_FEEDBACK);
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editingGroupName, setEditingGroupName] = useState('');
@@ -93,6 +94,8 @@ export function DeskView() {
       setServiceHealth(health);
     } catch {
       setServiceHealth({ ok: false, source: 'sidecar' });
+    } finally {
+      setHealthChecked(true);
     }
   };
 
@@ -325,11 +328,13 @@ export function DeskView() {
     ? state.error
     : state.isLoading
       ? '加载中…'
-      : !canUseLocalService
-        ? '本地服务离线'
-        : hasActiveSearch
-          ? `搜索 ${visibleNotes.length} 条`
-          : `${notes.length} 条笔记`;
+      : !healthChecked
+        ? 'LOCAL ENGINE · STARTING'
+        : !canUseLocalService
+          ? '本地服务离线'
+          : hasActiveSearch
+            ? `搜索 ${visibleNotes.length} 条`
+            : `${notes.length} 条笔记`;
 
   const isEmpty = notes.length === 0;
   const hasNoSearchResults = !isEmpty && hasActiveSearch && visibleNotes.length === 0;

@@ -1,6 +1,5 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 import { runLocalOcr } from './ocr-adapter.mjs';
 
@@ -17,8 +16,6 @@ const CONTENT_TYPE_EXTENSIONS = new Map([
   ['image/png', '.png'],
   ['image/webp', '.webp'],
 ]);
-const moduleDirectory = path.dirname(fileURLToPath(import.meta.url));
-
 export function isAllowedRemoteImageUrl(value) {
   try {
     const url = new URL(value);

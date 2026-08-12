@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
-import { execFile, spawn } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,7 +10,8 @@ import { promisify } from 'node:util';
 import { inferCategoryFromNote } from './lib/category-inference.mjs';
 import { recoverCachedNoteCovers } from './lib/cache-cover-recovery.mjs';
 import { localizeNoteMedia } from './lib/media-import.mjs';
-import { probeWindowsOcr } from './lib/ocr-adapter.mjs';
+import { probeLocalOcr } from './lib/ocr-adapter.mjs';
+import * as platform from './platform/index.mjs';
 import { resolveAnonymousNote } from './lib/anonymous-note-resolver.mjs';
 import {
   extractNoteIdFromUrl,
@@ -28,13 +29,9 @@ const MCP_SERVER_NAME = 'kankan-notes';
 const execFileAsync = promisify(execFile);
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number.parseInt(process.env.LOCAL_API_PORT || `${DEFAULT_PORT}`, 10);
-const defaultDataDirectory = process.platform === 'darwin'
-  ? path.join(os.homedir(), 'Library', 'Application Support', 'com.patrick.kankanshoucang')
-  : process.platform === 'win32'
-    ? path.join(process.env.LOCALAPPDATA || os.homedir(), 'com.patrick.kankanshoucang')
-    : path.join(os.homedir(), '.kan-kan-shou-cang');
+const defaultDataDirectory = platform.dataDirectory();
 const dataDirectory = process.env.LOCAL_APP_DATA_DIR || defaultDataDirectory;
-const legacyDataDirectory = path.join(os.homedir(), '.kan-kan-shou-cang');
+const legacyDataDirectory = platform.legacyDataDirectory();
 const notesFilePath = path.join(dataDirectory, 'notes.json');
 const legacyNotesFilePath = path.join(legacyDataDirectory, 'notes.json');
 const notesTempFilePath = path.join(dataDirectory, 'notes.next.json');
@@ -69,70 +66,8 @@ function resolveMcpServerPath() {
   ]);
 }
 
-function launchDetached(command, args) {
-  const child = spawn(command, args, {
-    detached: true,
-    stdio: 'ignore',
-  });
-  child.unref();
-}
-
 async function resolveAgentExecutable(client) {
-  const executableName = client === 'codex' ? 'codex' : 'claude';
-  const home = os.homedir();
-
-  if (process.platform === 'win32') {
-    const candidates = client === 'codex'
-      ? [
-          path.join(home, '.local', 'bin', 'codex.exe'),
-          path.join(home, 'AppData', 'Roaming', 'npm', 'codex.cmd'),
-        ]
-      : [
-          path.join(home, '.local', 'bin', 'claude.exe'),
-          path.join(home, '.claude', 'local', 'claude.exe'),
-          path.join(home, 'AppData', 'Roaming', 'npm', 'claude.cmd'),
-        ];
-    const knownPath = firstExistingPath(candidates);
-    if (knownPath) return knownPath;
-
-    try {
-      const { stdout } = await execFileAsync('where', [executableName], {
-        timeout: 5000,
-        maxBuffer: 64 * 1024,
-      });
-      const resolved = stdout.split(/\r?\n/).map((line) => line.trim()).find((line) => line && existsSync(line));
-      return resolved || null;
-    } catch {
-      return null;
-    }
-  }
-
-  const candidates = client === 'codex'
-    ? [
-        '/opt/homebrew/bin/codex',
-        '/usr/local/bin/codex',
-        path.join(home, '.local', 'bin', 'codex'),
-        path.join(home, '.npm-global', 'bin', 'codex'),
-      ]
-    : [
-        '/opt/homebrew/bin/claude',
-        '/usr/local/bin/claude',
-        path.join(home, '.local', 'bin', 'claude'),
-        path.join(home, '.claude', 'local', 'claude'),
-      ];
-  const knownPath = firstExistingPath(candidates);
-  if (knownPath) return knownPath;
-
-  try {
-    const { stdout } = await execFileAsync('/bin/zsh', ['-lc', `command -v ${executableName}`], {
-      timeout: 5000,
-      maxBuffer: 64 * 1024,
-    });
-    const resolved = stdout.trim();
-    return resolved && existsSync(resolved) ? resolved : null;
-  } catch {
-    return null;
-  }
+  return platform.resolveAgentExecutable(client);
 }
 
 async function buildSetupResponse() {
@@ -480,45 +415,16 @@ const server = createServer(async (request, response) => {
       return;
     }
 
-    if (request.method === 'POST' && url.pathname === '/setup/browser-extension/open') {
+        if (request.method === 'POST' && url.pathname === '/setup/browser-extension/open') {
       const extensionDirectory = resolveExtensionDirectory();
       if (!extensionDirectory) throw new Error('浏览器插件文件不存在');
-      if (process.platform === 'win32') {
-        launchDetached('explorer.exe', [extensionDirectory]);
-        const chromeCandidates = [
-          path.join(process.env.ProgramFiles || 'C:\\Program Files', 'Google', 'Chrome', 'Application', 'chrome.exe'),
-          path.join(process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)', 'Google', 'Chrome', 'Application', 'chrome.exe'),
-          path.join(process.env.LOCALAPPDATA || '', 'Google', 'Chrome', 'Application', 'chrome.exe'),
-        ];
-        const chromePath = firstExistingPath(chromeCandidates);
-        if (chromePath) {
-          launchDetached(chromePath, ['chrome://extensions/']);
-        } else {
-          const edgeCandidates = [
-            path.join(process.env.ProgramFiles || 'C:\\Program Files', 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
-            path.join(process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)', 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
-          ];
-          const edgePath = firstExistingPath(edgeCandidates);
-          if (edgePath) {
-            launchDetached(edgePath, ['edge://extensions/']);
-          } else {
-            throw new Error('没有找到 Chrome 或 Edge');
-          }
-        }
-        sendJson(request, response, 200, {
-          ok: true,
-          path: extensionDirectory,
-          message: '已打开扩展页和插件文件夹',
-        });
-        return;
-      }
-      if (process.platform !== 'darwin') throw new Error('当前仅支持在 macOS 或 Windows 上自动打开插件配置');
-      launchDetached('open', [extensionDirectory]);
-      launchDetached('open', ['-a', 'Google Chrome', 'chrome://extensions/']);
+      platform.openFolder(extensionDirectory);
+      const opened = platform.openBrowserUrl('chrome://extensions/');
+      if (!opened) throw new Error('没有找到 Chrome 或 Edge');
       sendJson(request, response, 200, {
         ok: true,
         path: extensionDirectory,
-        message: '已打开 Chrome 扩展页和插件文件夹',
+        message: '已打开扩展页和插件文件夹',
       });
       return;
     }
@@ -563,17 +469,41 @@ const server = createServer(async (request, response) => {
   }
 });
 
+async function listenWithRetry() {
+  const MAX_ATTEMPTS = 10;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    try {
+      await new Promise((resolve, reject) => {
+        const serverHandle = server.listen(PORT, '127.0.0.1');
+        serverHandle.once('listening', resolve);
+        serverHandle.once('error', reject);
+      });
+      return;
+    } catch (error) {
+      const code = error?.code || '';
+      if (code === 'EADDRINUSE' && attempt < MAX_ATTEMPTS) {
+        // A previous instance's socket may linger briefly (e.g. after a
+        // force-kill). Wait and retry before declaring failure.
+        console.log(`port ${PORT} busy (attempt ${attempt}/${MAX_ATTEMPTS}), retrying...`);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        continue;
+      }
+      throw error;
+    }
+  }
+}
+
 async function startServer() {
   await ensureDataDirectory();
-  if (process.platform === 'win32') {
-    const probe = await probeWindowsOcr();
+  const probe = await probeLocalOcr();
+  if (probe.engine) {
     ocrStatus = {
-      engine: 'windows',
+      engine: probe.engine,
       available: probe.available,
       languages: probe.languages,
       error: probe.error,
     };
-    console.log(`windows OCR: ${ocrStatus.available ? `available (${ocrStatus.languages.join(', ')})` : 'unavailable'}`);
+    console.log(`${probe.engine} OCR: ${ocrStatus.available ? `available (${ocrStatus.languages.join(', ')})` : 'unavailable'}`);
   }
   const existingNotes = await readNotes();
   const recovered = await recoverCachedNoteCovers(existingNotes, {
@@ -583,13 +513,12 @@ async function startServer() {
   });
   if (recovered.recoveredCount > 0) await writeNotes(recovered.notes);
 
-  server.listen(PORT, '127.0.0.1', () => {
-    console.log(`local-api listening on http://127.0.0.1:${PORT}`);
-    console.log(`local data directory: ${dataDirectory}`);
-    if (recovered.recoveredCount > 0) {
-      console.log(`recovered ${recovered.recoveredCount} cached note covers`);
-    }
-  });
+  await listenWithRetry();
+  console.log(`local-api listening on http://127.0.0.1:${PORT}`);
+  console.log(`local data directory: ${dataDirectory}`);
+  if (recovered.recoveredCount > 0) {
+    console.log(`recovered ${recovered.recoveredCount} cached note covers`);
+  }
 }
 
 startServer().catch((error) => {

@@ -2,21 +2,17 @@
 
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import os from 'node:os';
 import path from 'node:path';
 
 import { noteMatchesQuery } from './lib/note-search.mjs';
+import * as platform from './platform/index.mjs';
 
 const SERVER_NAME = 'kankan-notes';
 const SERVER_VERSION = '0.1.0';
 const DEFAULT_PROTOCOL_VERSION = '2025-06-18';
-const defaultDataDirectory = process.platform === 'darwin'
-  ? path.join(os.homedir(), 'Library', 'Application Support', 'com.patrick.kankanshoucang')
-  : process.platform === 'win32'
-    ? path.join(process.env.LOCALAPPDATA || os.homedir(), 'com.patrick.kankanshoucang')
-    : path.join(os.homedir(), '.kan-kan-shou-cang');
+const defaultDataDirectory = platform.dataDirectory();
 const dataDirectory = process.env.LOCAL_APP_DATA_DIR || defaultDataDirectory;
-const legacyDataDirectory = path.join(os.homedir(), '.kan-kan-shou-cang');
+const legacyDataDirectory = platform.legacyDataDirectory();
 
 function isUsableStoredNote(note) {
   return Boolean(

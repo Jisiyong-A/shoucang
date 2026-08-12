@@ -18,6 +18,22 @@ const LOCAL_API_PORT: &str = "4318";
 /// a terminal window on Windows. No-op on other platforms.
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
+/// Tauri's path resolver returns verbatim (`\\?\`) paths on Windows, which
+/// Node's CJS main-module loader mishandles (`resolveMainPath` lstat's a
+/// broken `C:` fragment → EISDIR). Strip the prefix before passing paths
+/// to the sidecar.
+fn normalize_win_path(value: &std::path::Path) -> std::path::PathBuf {
+    let s = value.to_string_lossy();
+    let normalized = if let Some(rest) = s.strip_prefix(r"\\?\UNC\") {
+        format!(r"\\{rest}")
+    } else if let Some(rest) = s.strip_prefix(r"\\?\") {
+        rest.to_string()
+    } else {
+        s.to_string()
+    };
+    std::path::PathBuf::from(normalized)
+}
+
 struct LocalApiState(Mutex<Option<Child>>);
 
 fn resolve_local_api_script(app: &tauri::App) -> Result<PathBuf, String> {
@@ -87,9 +103,27 @@ fn resolve_node_binary(app: &tauri::App) -> String {
 }
 
 fn spawn_local_api(app: &tauri::App) -> Result<Child, String> {
-    let script_path = resolve_local_api_script(app)?;
-    let data_dir = app.path().app_local_data_dir().map_err(|err| err.to_string())?;
+    let script_path = normalize_win_path(&resolve_local_api_script(app)?);
+    let node_binary = normalize_win_path(&std::path::PathBuf::from(resolve_node_binary(app)));
+    let data_dir = normalize_win_path(&app.path().app_local_data_dir().map_err(|err| err.to_string())?);
     fs::create_dir_all(&data_dir).map_err(|err| err.to_string())?;
+
+    // Diagnostics: record exactly what we are about to spawn (invisible
+    // stderr in release GUI builds makes this the only trace).
+    if let Ok(mut diag) = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(data_dir.join("local-api.spawn.log"))
+    {
+        use std::io::Write;
+        let _ = writeln!(
+            diag,
+            "[tauri] cwd={:?} node={} script={}",
+            std::env::current_dir().unwrap_or_default(),
+            node_binary.display(),
+            script_path.display()
+        );
+    }
 
     let stdout_log = OpenOptions::new()
         .create(true)
@@ -119,15 +153,77 @@ fn spawn_local_api(app: &tauri::App) -> Result<Child, String> {
     child.map_err(|err| format!("failed to spawn local-api: {err}"))
 }
 
+/// Wait briefly for the sidecar /health endpoint, then report the outcome.
+/// Gives the user an explicit diagnostic when the sidecar cannot come up
+/// (e.g. port 4318 already in use by another process).
+fn wait_for_local_api(data_dir: &std::path::Path, port: &str, child: &mut Child) {
+    let url = format!("http://127.0.0.1:{port}/health");
+    let mut ready = false;
+
+    for _ in 0..40 {
+        if let Ok(Some(status)) = child.try_wait() {
+            let stderr_path = data_dir.join("local-api.stderr.log");
+            eprintln!(
+                "local-api exited early (status {status}). Check {} for the error. \
+                 If the error mentions EADDRINUSE, another 看看收藏 instance is already running.",
+                stderr_path.display()
+            );
+            return;
+        }
+
+        if let Ok(response) = std::net::TcpStream::connect_timeout(
+            &format!("127.0.0.1:{port}").parse().unwrap_or_else(|_| {
+                std::net::SocketAddr::from(([127, 0, 0, 1], 4318))
+            }),
+            std::time::Duration::from_millis(250),
+        ) {
+            drop(response);
+            ready = true;
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(150));
+    }
+
+    if ready {
+        eprintln!("local-api ready at {url}");
+    } else {
+        eprintln!(
+            "local-api did not become ready within the startup window ({url}). \
+             Check {} for details. If port {} is in use by another process, \
+             close it or the other instance and relaunch.",
+            data_dir.join("local-api.stderr.log").display(),
+            port
+        );
+    }
+}
+
 fn main() {
     let app = tauri::Builder::default()
         .setup(|app| {
             match spawn_local_api(app) {
-                Ok(child) => {
+                Ok(mut child) => {
+                    let data_dir = app.path().app_local_data_dir().map_err(|err| err.to_string());
+                    if let Ok(dir) = &data_dir {
+                        wait_for_local_api(dir, LOCAL_API_PORT, &mut child);
+                    }
                     app.manage(LocalApiState(Mutex::new(Some(child))));
                 }
                 Err(err) => {
                     eprintln!("{err}");
+                    // Release GUI builds have no visible stderr — mirror the
+                    // failure into the app log directory for diagnosis.
+                    if let Ok(dir) = app.path().app_local_data_dir() {
+                        let dir = normalize_win_path(&dir);
+                        let _ = fs::create_dir_all(&dir);
+                        if let Ok(mut log) = OpenOptions::new()
+                            .create(true)
+                            .append(true)
+                            .open(dir.join("local-api.stderr.log"))
+                        {
+                            use std::io::Write;
+                            let _ = writeln!(log, "[tauri] {err}");
+                        }
+                    }
                 }
             }
             Ok(())
