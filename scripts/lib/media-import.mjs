@@ -114,6 +114,10 @@ async function downloadVideo(url, noteDirectory, fetchImpl) {
       fileStream.end(resolve);
       fileStream.on('error', reject);
     });
+    if (declaredLength > 0 && received !== declaredLength) {
+      await rm(filePath, { force: true }).catch(() => {});
+      return null;
+    }
     return { fileName: 'video.mp4', filePath, sourceUrl: url };
   } catch {
     return null;

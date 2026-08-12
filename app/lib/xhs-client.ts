@@ -151,6 +151,9 @@ function normalizeNote(note: Partial<Note>): Note {
     savedAt: toDate(note.savedAt),
     tags: Array.isArray(note.tags) ? note.tags : [],
     type: note.type === 'video' ? 'video' : 'normal',
+    videoUrl: note.videoUrl || '',
+    videoLocalPath: note.videoLocalPath || '',
+    videoError: note.videoError || '',
     imageAspect: note.imageAspect,
   };
 }

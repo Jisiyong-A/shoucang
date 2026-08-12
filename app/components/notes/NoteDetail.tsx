@@ -129,6 +129,29 @@ export function NoteDetail({
               style={{ width: '100%', height: '100%', maxHeight: 'min(86vh, 820px)', objectFit: 'contain' }}
             />
           </div>
+        ) : note.type === 'video' ? (
+          <div
+            style={{
+              flex: 1.2,
+              minWidth: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 12,
+              background: '#050506',
+              borderRight: 'var(--border-strong)',
+              padding: 24,
+              textAlign: 'center',
+            }}
+          >
+            <span style={{ fontSize: 12, color: 'var(--text-faint)', fontFamily: 'var(--font-mono)', letterSpacing: '0.14em' }}>
+              VIDEO
+            </span>
+            <span style={{ fontSize: 12.5, color: 'var(--text-dim)', maxWidth: 260, wordBreak: 'break-word' }}>
+              {note.videoError || '视频未下载'}
+            </span>
+          </div>
         ) : (
           <NoteGallery
             imageUrls={imageUrls}
