@@ -14,3 +14,4 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 tauri = { version = "2", features = [] }
+rusqlite = { version = "0.40", features = ["bundled", "fts5"] }

@@ -38,7 +38,7 @@ export function knownExecutableCandidates(client) {
 }
 
 export async function resolveExecutable(name, env = process.env) {
-  const known = knownExecutableCandidates(name, env).find((candidate) => existsSync(candidate));
+  const known = knownExecutableCandidates(name).find((candidate) => existsSync(candidate));
   if (known) return known;
 
   try {
@@ -57,31 +57,63 @@ export function openFolder(folderPath) {
   child.unref();
 }
 
-export function browserExecutable(env = process.env) {
+function chromeCandidates(env) {
   const programFiles = String(env.ProgramFiles || 'C:\\Program Files');
   const programFilesX86 = String(env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)');
   const localAppData = String(env.LOCALAPPDATA || '');
-  const chromeCandidates = [
+  return [
     path.join(programFiles, 'Google', 'Chrome', 'Application', 'chrome.exe'),
     path.join(programFilesX86, 'Google', 'Chrome', 'Application', 'chrome.exe'),
     localAppData ? path.join(localAppData, 'Google', 'Chrome', 'Application', 'chrome.exe') : '',
   ].filter(Boolean);
-  const chrome = chromeCandidates.find((candidate) => existsSync(candidate));
-  if (chrome) return { executable: chrome, extensionsUrl: 'chrome://extensions/' };
+}
 
-  const edgeCandidates = [
+function edgeCandidates(env) {
+  const programFiles = String(env.ProgramFiles || 'C:\\Program Files');
+  const programFilesX86 = String(env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)');
+  return [
     path.join(programFiles, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
     path.join(programFilesX86, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
   ].filter(Boolean);
-  const edge = edgeCandidates.find((candidate) => existsSync(candidate));
+}
+
+export function chromeExecutable(env = process.env) {
+  return chromeCandidates(env).find((candidate) => existsSync(candidate)) || null;
+}
+
+export function edgeExecutable(env = process.env) {
+  return edgeCandidates(env).find((candidate) => existsSync(candidate)) || null;
+}
+
+export function browserExecutable(env = process.env) {
+  const chrome = chromeExecutable(env);
+  if (chrome) return { executable: chrome, extensionsUrl: 'chrome://extensions/' };
+  const edge = edgeExecutable(env);
   if (edge) return { executable: edge, extensionsUrl: 'edge://extensions/' };
   return null;
 }
 
-export function openBrowserUrl(url, env = process.env) {
-  const browser = browserExecutable(env);
-  if (!browser) return false;
-  const child = spawn(browser.executable, [url], { detached: true, stdio: 'ignore' });
+/** Detect which browsers are installed (both, not just the preferred). */
+export function detectBrowsers(env = process.env) {
+  return {
+    chrome: Boolean(chromeExecutable(env)),
+    edge: Boolean(edgeExecutable(env)),
+  };
+}
+
+export function openBrowserUrl(url, env = process.env, browser = 'auto') {
+  let target = null;
+  if (browser === 'chrome') {
+    const chrome = chromeExecutable(env);
+    if (chrome) target = { executable: chrome, extensionsUrl: 'chrome://extensions/' };
+  } else if (browser === 'edge') {
+    const edge = edgeExecutable(env);
+    if (edge) target = { executable: edge, extensionsUrl: 'edge://extensions/' };
+  } else {
+    target = browserExecutable(env);
+  }
+  if (!target) return false;
+  const child = spawn(target.executable, [url], { detached: true, stdio: 'ignore' });
   child.unref();
   return true;
 }

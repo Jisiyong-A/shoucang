@@ -37,6 +37,8 @@ export type LocalSetupInfo = {
     available: boolean;
     path: string | null;
     version: string | null;
+    connected?: boolean;
+    browsers?: { chrome: boolean; edge: boolean };
   };
   agent: {
     available: boolean;
@@ -211,8 +213,11 @@ export async function getLocalSetupInfo(): Promise<LocalSetupInfo> {
   return fetchLocalApi<LocalSetupInfo>('/setup', undefined, 8000);
 }
 
-export async function openBrowserExtensionSetup(): Promise<{ ok: boolean; path: string; message: string }> {
-  return fetchLocalApi('/setup/browser-extension/open', { method: 'POST' }, 8000);
+export async function openBrowserExtensionSetup(browser?: 'chrome' | 'edge'): Promise<{ ok: boolean; path: string; message: string }> {
+  return fetchLocalApi('/setup/browser-extension/open', {
+    method: 'POST',
+    body: JSON.stringify(browser ? { browser } : {}),
+  }, 8000);
 }
 
 export async function connectLocalAgent(client: AgentClient): Promise<{ ok: boolean; message: string }> {

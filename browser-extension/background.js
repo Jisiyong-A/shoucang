@@ -1,13 +1,18 @@
 const LOCAL_IMPORT_URL = 'http://127.0.0.1:4318/notes/import';
 
 async function importNote(note) {
-  const response = await fetch(LOCAL_IMPORT_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ note }),
-  });
+  let response;
+  try {
+    response = await fetch(LOCAL_IMPORT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ note }),
+    });
+  } catch {
+    throw new Error('LOCAL ENGINE OFFLINE');
+  }
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload.error || '本地导入失败');
+  if (!response.ok) throw new Error(payload.error || 'NOTE RESOLVE FAILED');
   return payload;
 }
 

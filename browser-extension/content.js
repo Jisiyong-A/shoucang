@@ -147,6 +147,19 @@ function setButtonState(button, label, tone) {
   button.style.background = tone;
 }
 
+/** Fire-and-forget heartbeat so the app can show CONNECTED status.
+ *  No polling: runs once per page load + per import interaction. */
+function heartbeat() {
+  try {
+    fetch('http://127.0.0.1:4318/setup/extension/heartbeat', {
+      method: 'POST',
+      credentials: 'omit',
+    }).catch(() => {});
+  } catch {
+    // offline is fine — the button will surface it on interaction
+  }
+}
+
 function installButton() {
   const existing = document.getElementById(BUTTON_ID);
   if (!getNoteId()) {
@@ -185,9 +198,10 @@ function installButton() {
       event.dataTransfer.setData('application/x-kankan-note', payload);
       event.dataTransfer.setData('text/plain', payload);
       event.dataTransfer.setData('text/uri-list', note.sourceUrl);
+      heartbeat();
     } catch (error) {
       event.preventDefault();
-      setButtonState(button, error instanceof Error ? error.message : '读取失败', '#B56A5B');
+      setButtonState(button, 'PAGE DATA NOT AVAILABLE', '#B56A5B');
     }
   });
 
@@ -200,14 +214,15 @@ function installButton() {
     try {
       note = captureCurrentNote();
     } catch (error) {
-      setButtonState(button, error instanceof Error ? error.message : '读取失败', '#B56A5B');
+      setButtonState(button, 'PAGE DATA NOT AVAILABLE', '#B56A5B');
       return;
     }
 
     setButtonState(button, '正在收藏…', '#9AA99D');
+    heartbeat();
     chrome.runtime.sendMessage({ type: 'IMPORT_NOTE', note }, (response) => {
       if (chrome.runtime.lastError || !response?.ok) {
-        setButtonState(button, response?.error || '请先打开看看收藏', '#B56A5B');
+        setButtonState(button, response?.error || 'LOCAL ENGINE OFFLINE', '#B56A5B');
       } else {
         setButtonState(button, response.created ? '已收藏 ✓' : '已更新 ✓', '#6E9478');
       }
@@ -238,6 +253,7 @@ document.addEventListener('dragstart', (event) => {
 }, true);
 
 installButton();
+heartbeat();
 document.dispatchEvent(new CustomEvent(PAGE_DATA_REQUEST_EVENT));
 setInterval(() => {
   installButton();

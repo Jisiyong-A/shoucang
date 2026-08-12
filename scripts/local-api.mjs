@@ -45,6 +45,8 @@ const coverCacheDirectories = process.platform === 'darwin'
   : [];
 let mutationQueue = Promise.resolve();
 let ocrStatus = { engine: process.platform === 'darwin' ? 'vision' : null, available: process.platform === 'darwin', languages: [], error: null };
+let extensionLastSeen = 0;
+const EXTENSION_HEARTBEAT_WINDOW_MS = 60_000;
 
 function firstExistingPath(candidates) {
   return candidates.find((candidate) => existsSync(candidate)) || null;
@@ -86,11 +88,15 @@ async function buildSetupResponse() {
     }
   }
 
+  const browsers = platform.detectBrowsers();
+
   return {
     extension: {
       available: Boolean(extensionDirectory),
       path: extensionDirectory,
       version: extensionVersion,
+      connected: Boolean(extensionDirectory) && Date.now() - extensionLastSeen < EXTENSION_HEARTBEAT_WINDOW_MS,
+      browsers,
     },
     agent: {
       available: Boolean(mcpServerPath),
@@ -415,14 +421,24 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    if (request.method === 'POST' && url.pathname === '/setup/extension/heartbeat') {
+      extensionLastSeen = Date.now();
+      sendJson(request, response, 200, { ok: true });
+      return;
+    }
+
         if (request.method === 'POST' && url.pathname === '/setup/browser-extension/open') {
       const extensionDirectory = resolveExtensionDirectory();
       if (!extensionDirectory) throw new Error('浏览器插件文件不存在');
+      const body = await readRequestBody(request);
+      const browser = body?.browser === 'chrome' || body?.browser === 'edge' ? body.browser : 'auto';
       platform.openFolder(extensionDirectory);
-      const opened = platform.openBrowserUrl('chrome://extensions/');
-      if (!opened) throw new Error('没有找到 Chrome 或 Edge');
+      const extensionsUrl = browser === 'edge' ? 'edge://extensions/' : 'chrome://extensions/';
+      const opened = platform.openBrowserUrl(extensionsUrl, browser);
+      if (!opened) throw new Error('没有找到目标浏览器，请手动打开扩展页');
       sendJson(request, response, 200, {
         ok: true,
+        browser,
         path: extensionDirectory,
         message: '已打开扩展页和插件文件夹',
       });

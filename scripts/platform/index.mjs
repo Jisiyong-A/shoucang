@@ -33,9 +33,17 @@ export function openFolder(folderPath) {
   return adapter.openFolder(folderPath);
 }
 
-export function openBrowserUrl(url) {
+export function openBrowserUrl(url, browser = 'auto') {
   if (!adapter) return unsupported();
-  return adapter.openBrowserUrl(url);
+  return adapter.openBrowserUrl(url, process.env, browser);
+}
+
+/** Which Chromium browsers are installed (windows adapter only). */
+export function detectBrowsers() {
+  if (!adapter) return { chrome: false, edge: false };
+  return typeof adapter.detectBrowsers === 'function'
+    ? adapter.detectBrowsers()
+    : { chrome: false, edge: false };
 }
 
 export { isWindows, isMacos, platformName, legacyDataDirectory } from './common.mjs';

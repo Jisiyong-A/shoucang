@@ -127,11 +127,11 @@ export function DeskView() {
     }
   };
 
-  const handleOpenExtensionSetup = async () => {
+  const handleOpenExtensionSetup = async (browser?: 'chrome' | 'edge') => {
     setSetupLoading(true);
     setSetupMessage('');
     try {
-      const result = await openBrowserExtensionSetup();
+      const result = await openBrowserExtensionSetup(browser);
       setSetupMessage(result.message);
     } catch (error) {
       setSetupMessage(error instanceof Error && error.message ? error.message : '打开失败，请检查本地服务');
@@ -646,7 +646,7 @@ export function DeskView() {
             connectingClient={connectingClient}
             connectedClients={connectedClients}
             onClose={() => setSetupPanel(null)}
-            onOpenExtension={() => void handleOpenExtensionSetup()}
+            onOpenExtension={(browser) => void handleOpenExtensionSetup(browser)}
             onConnectAgent={(client) => void handleConnectAgent(client)}
             onRecheck={() => void openSetupPanel(setupPanel)}
           />

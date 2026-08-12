@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { ExternalLink, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { AgentClient, LocalServiceHealth, LocalSetupInfo } from '../../lib/xhs-client';
 import { Badge, Button, MatrixLabel, Panel, StatusLight } from '../ui';
 import { AgentPanel } from './AgentPanel';
@@ -43,7 +43,7 @@ export function SetupPanel({
   connectingClient: AgentClient | null;
   connectedClients: Set<AgentClient>;
   onClose: () => void;
-  onOpenExtension: () => void;
+  onOpenExtension: (browser?: 'chrome' | 'edge') => void;
   onConnectAgent: (client: AgentClient) => void;
   onRecheck: () => void;
 }) {
@@ -181,37 +181,73 @@ export function SetupPanel({
                 </Panel>
               </section>
 
-              {/* BROWSER EXTENSION */}
-              <section aria-label="浏览器插件">
-                <MatrixLabel style={{ display: 'block', marginBottom: 4 }}>BROWSER EXTENSION</MatrixLabel>
+              {/* BROWSER BRIDGE */}
+              <section aria-label="浏览器桥">
+                <MatrixLabel style={{ display: 'block', marginBottom: 4 }}>BROWSER BRIDGE</MatrixLabel>
                 <Panel radius="var(--radius-3)" style={{ padding: '12px 14px', marginBottom: 16 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                    <Badge tone={info?.extension.available ? 'ok' : 'error'}>
-                      {info?.extension.available ? `v${info.extension.version || '?'} AVAILABLE` : 'NOT FOUND'}
-                    </Badge>
-                    <Button size="sm" onClick={onOpenExtension} disabled={!info?.extension.available}>
-                      <ExternalLink size={12} />
-                      打开设置
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <StatusLight
+                        state={info?.extension.connected ? 'ok' : info?.extension.available ? 'idle' : 'error'}
+                        blink={!info?.extension.connected && Boolean(info?.extension.available)}
+                      />
+                      <Badge tone={info?.extension.connected ? 'ok' : info?.extension.available ? 'default' : 'error'}>
+                        {!info?.extension.available
+                          ? 'NOT INSTALLED'
+                          : info?.extension.connected
+                            ? 'CONNECTED'
+                            : 'READY TO INSTALL'}
+                      </Badge>
+                    </div>
+                    <Badge>v{info?.extension.version || '?'}</Badge>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                    <Button
+                      size="sm"
+                      onClick={() => onOpenExtension('chrome')}
+                      disabled={!info?.extension.available || !info?.extension.browsers?.chrome}
+                    >
+                      OPEN CHROME SETUP
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => onOpenExtension('edge')}
+                      disabled={!info?.extension.available || !info?.extension.browsers?.edge}
+                    >
+                      OPEN EDGE SETUP
+                    </Button>
+                    <Button size="sm" onClick={() => onOpenExtension()} disabled={!info?.extension.available}>
+                      OPEN EXTENSION FOLDER
                     </Button>
                   </div>
-                  <details style={{ marginTop: 10, color: 'var(--text-faint)' }}>
-                    <summary style={{ cursor: 'pointer', fontSize: 11, listStylePosition: 'inside' }}>
-                      安装帮助
-                    </summary>
+                  <ol
+                    style={{
+                      margin: '12px 0 0',
+                      paddingLeft: 18,
+                      color: 'var(--text-faint)',
+                      fontSize: 11,
+                      lineHeight: 1.9,
+                    }}
+                  >
+                    <li>打开开发者模式</li>
+                    <li>加载已解压的扩展程序</li>
+                    <li>选择刚打开的文件夹</li>
+                  </ol>
+                  {!info?.extension.browsers?.chrome && !info?.extension.browsers?.edge && (
                     <div
                       style={{
-                        marginTop: 8,
-                        padding: '10px 12px',
+                        marginTop: 10,
+                        padding: '8px 10px',
                         borderRadius: 'var(--radius-2)',
-                        background: '#0D0D0F',
-                        border: 'var(--border-hairline)',
+                        border: '1px solid var(--warning)',
+                        color: 'var(--warning)',
                         fontSize: 11,
-                        lineHeight: 1.8,
+                        fontFamily: 'var(--font-mono)',
                       }}
                     >
-                      打开开发者模式，然后点「加载已解压的扩展程序」，选择打开的文件夹。
+                      未检测到 Chrome / Edge，请手动打开扩展页
                     </div>
-                  </details>
+                  )}
                 </Panel>
               </section>
 
