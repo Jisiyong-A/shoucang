@@ -46,7 +46,35 @@ const coverCacheDirectories = process.platform === 'darwin'
 let mutationQueue = Promise.resolve();
 let ocrStatus = { engine: process.platform === 'darwin' ? 'vision' : null, available: process.platform === 'darwin', languages: [], error: null };
 let extensionLastSeen = 0;
-const EXTENSION_HEARTBEAT_WINDOW_MS = 60_000;
+// A 60s window made CONNECTED flake out while the user simply reads the
+// settings page (heartbeats only fire when a XHS page loads). 6h = "the
+// extension has been seen working today" — stable, still honest.
+// Persisted to the data dir so an app reinstall does not reset it.
+const EXTENSION_HEARTBEAT_WINDOW_MS = 6 * 60 * 60 * 1000;
+const EXTENSION_LAST_SEEN_FILE = 'extension-last-seen.json';
+
+async function loadExtensionLastSeen() {
+  try {
+    const raw = JSON.parse(
+      await readFile(path.join(dataDirectory, EXTENSION_LAST_SEEN_FILE), 'utf8'),
+    );
+    if (typeof raw.lastSeen === 'number') extensionLastSeen = raw.lastSeen;
+  } catch {
+    // first run or unreadable — leave 0
+  }
+}
+
+async function persistExtensionLastSeen() {
+  try {
+    await writeFile(
+      path.join(dataDirectory, EXTENSION_LAST_SEEN_FILE),
+      JSON.stringify({ lastSeen: Date.now() }),
+      'utf8',
+    );
+  } catch {
+    // non-fatal: memory-only CONNECTED still works this session
+  }
+}
 
 function firstExistingPath(candidates) {
   return candidates.find((candidate) => existsSync(candidate)) || null;
@@ -131,19 +159,20 @@ async function buildSetupResponse() {
   };
 }
 
-const connectedAgents = new Set();
+let connectedAgents = new Set();
 let probePromise = null;
 let lastProbeDoneAt = 0;
 const PROBE_TTL_MS = 30_000;
 
 /** Probe whether an agent already has the MCP server registered.
- * Cached with a 30s TTL: readers never restart/clear an in-flight probe,
- * so they always observe the last completed state. */
+ * Cached with a 30s TTL; the result Set is swapped atomically when the
+ * probe finishes, so readers always observe the last completed state and
+ * never a half-cleared one. */
 async function probeConnectedAgents(force = false) {
   if (!force && Date.now() - lastProbeDoneAt < PROBE_TTL_MS) return;
   if (probePromise) return probePromise;
   probePromise = (async () => {
-    connectedAgents.clear();
+    const fresh = new Set();
     const probes = [
       ['codex', ['mcp', 'list']],
       ['claude', ['mcp', 'list', '--scope', 'user']],
@@ -154,11 +183,12 @@ async function probeConnectedAgents(force = false) {
         const executable = await resolveAgentExecutable(client);
         if (!executable) continue;
         const { stdout } = await execFileAsync(executable, args, { timeout: 8000, maxBuffer: 1024 * 1024 });
-        if (stdout.includes(MCP_SERVER_NAME)) connectedAgents.add(client);
+        if (stdout.includes(MCP_SERVER_NAME)) fresh.add(client);
       } catch {
         // not connected or CLI unavailable — leave unset
       }
     }
+    connectedAgents = fresh;
     lastProbeDoneAt = Date.now();
   })().finally(() => { probePromise = null; });
   return probePromise;
@@ -552,6 +582,7 @@ const server = createServer(async (request, response) => {
 
     if (request.method === 'POST' && url.pathname === '/setup/extension/heartbeat') {
       extensionLastSeen = Date.now();
+      persistExtensionLastSeen().catch(() => {});
       sendJson(request, response, 200, { ok: true });
       return;
     }
@@ -639,8 +670,9 @@ async function listenWithRetry() {
 }
 
 async function startServer() {
-  probeConnectedAgents().catch(() => {});
+  probeConnectedAgents(true).catch(() => {});
   await ensureDataDirectory();
+  await loadExtensionLastSeen();
   const probe = await probeLocalOcr();
   if (probe.engine) {
     ocrStatus = {

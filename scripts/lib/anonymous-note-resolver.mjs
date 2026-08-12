@@ -144,11 +144,18 @@ function tagsFromNote(note) {
 }
 
 function notePayloadFromHtml(html, noteId, sourceUrl) {
+  // 风控/失效页面 detection: Xiaohongshu serves /404/sec_* pages (which
+  // contain no note data) when the anonymous request is challenged. Never
+  // silently import recommendations from those pages.
+  if (/\/404\/(?:sec_|pc_)?/i.test(html.slice(0, 4000))) {
+    throw new Error('笔记暂时无法匿名浏览（风控），请稍后重试，或在笔记详情页使用「拖到收藏」按钮');
+  }
+
   const state = extractInitialState(html);
   const noteRoot = state?.note || state?.noteData || null;
   const note = findNote(noteRoot, noteId);
   if (!note) {
-    throw new Error('匿名解析没有读到完整笔记；不会切换到你的登录浏览器');
+    throw new Error('没有读到笔记内容：小红书当前要求登录后才能查看正文。请先点开这篇笔记，再使用详情页的「拖到收藏」按钮或直接拖拽笔记页面');
   }
 
   const user = note.user || note.author || {};
@@ -157,6 +164,11 @@ function notePayloadFromHtml(html, noteId, sourceUrl) {
   const content = firstString(note, ['desc', 'description', 'content']);
   if (!title && !content && imageUrls.length === 0) {
     throw new Error('匿名解析返回的笔记内容为空');
+  }
+  // Guard: a valid note must carry its own images; a note with a bare
+  // cover and no body is almost certainly a recommendation-card artifact.
+  if (imageUrls.length === 0) {
+    throw new Error('匿名解析没有读到笔记图片（风控或链接失效），请稍后重试');
   }
 
   return {
@@ -188,7 +200,9 @@ async function fetchAnonymousPage(sourceUrl, fetchImpl) {
       headers: {
         Accept: 'text/html,application/xhtml+xml',
         'Accept-Language': 'zh-CN,zh;q=0.9',
-        'User-Agent': 'ShouCangFavorites/0.1 anonymous-local-resolver',
+        // A standard browser UA matters: Xiaohongshu serves its SSR page to
+        // browser-like clients and 302-redirects exotic UAs to /404/ (风控).
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36',
       },
     });
 

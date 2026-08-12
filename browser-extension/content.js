@@ -242,14 +242,38 @@ window.addEventListener('message', (event) => {
 });
 
 document.addEventListener('dragstart', (event) => {
+  if (!event.dataTransfer) return;
+
+  // Drag from anywhere on a note DETAIL page (image, body, caption):
+  // ship the full captured note instead of the browser's default payload
+  // (a bare image URL would fail resolution).
+  const noteId = getNoteId();
+  if (noteId && !event.target.closest(`#${BUTTON_ID}`)) {
+    try {
+      const note = captureCurrentNote();
+      const payload = `${PAYLOAD_PREFIX}${JSON.stringify(note)}`;
+      event.dataTransfer.effectAllowed = 'copy';
+      event.dataTransfer.setData('application/x-shoucang-note', payload);
+      event.dataTransfer.setData('text/plain', payload);
+      event.dataTransfer.setData('text/uri-list', note.sourceUrl);
+      heartbeat();
+      return;
+    } catch {
+      // fall through to the card handler below (still better than nothing)
+    }
+  }
+
+  // Drag from a feed/search card: minimal payload (id + token link + title);
+  // the app resolves the rest anonymously.
   const card = noteCardFromDragTarget(event.target);
-  if (!card || !event.dataTransfer) return;
+  if (!card) return;
 
   const payload = `${CARD_PAYLOAD_PREFIX}${JSON.stringify(card)}`;
   event.dataTransfer.effectAllowed = 'copy';
   event.dataTransfer.setData('application/x-shoucang-card', payload);
   event.dataTransfer.setData('text/plain', payload);
   event.dataTransfer.setData('text/uri-list', card.sourceUrl);
+  heartbeat();
 }, true);
 
 installButton();

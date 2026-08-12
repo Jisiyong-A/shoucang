@@ -262,27 +262,33 @@ export function DeskView() {
       message: 'CAPTURE OK',
     });
 
-    try {
-      // progress the pipeline while the single import call runs
-      const stepTimers = IMPORT_STEP_DELAYS.map(({ step, afterMs }) =>
-        window.setTimeout(() => {
-          setImportFeedback((current) => ({
-            ...current,
-            phase: 'processing',
-            step,
-            message: step === 'resolve'
-              ? '正在匿名解析正文和图片…'
-              : step === 'media'
-                ? '正在下载图片…'
-                : step === 'ocr'
-                  ? '正在本地 OCR…'
-                  : '正在建立索引…',
-          }));
-        }, afterMs),
-      );
-
-      const result = await importSharedNote(input);
+    // progress the pipeline while the single import call runs
+    const stepTimers = IMPORT_STEP_DELAYS.map(({ step, afterMs }) =>
+      window.setTimeout(() => {
+        setImportFeedback((current) => ({
+          ...current,
+          phase: 'processing',
+          step,
+          message: step === 'resolve'
+            ? '正在匿名解析正文和图片…'
+            : step === 'media'
+              ? '正在下载图片…'
+              : step === 'ocr'
+                ? '正在本地 OCR…'
+                : '正在建立索引…',
+        }));
+      }, afterMs),
+    );
+    let settled = false;
+    const clearStepTimers = () => {
+      if (settled) return;
+      settled = true;
       stepTimers.forEach(window.clearTimeout);
+    };
+
+    try {
+      const result = await importSharedNote(input);
+      clearStepTimers();
       setNotes(result.notes);
       setImportFeedback({
         phase: 'complete',
@@ -295,6 +301,7 @@ export function DeskView() {
         setImportFeedback((current) => current.phase === 'complete' ? IDLE_IMPORT_FEEDBACK : current);
       }, 1800);
     } catch (error) {
+      clearStepTimers();
       const message = error instanceof Error && error.message ? error.message : '导入失败，请检查链接后重试';
       setImportFeedback({ phase: 'error', step: 'error', title: '没有收录成功', message });
       dismissImportFeedback('error', 3600);
