@@ -19,6 +19,15 @@ type RemoteNotesPayload =
 export type LocalServiceHealth = {
   ok: boolean;
   source: NotesSource;
+  platform?: string;
+  dataDirectory?: string;
+  localOcr?: boolean;
+  ocr?: {
+    engine: string | null;
+    available: boolean;
+    languages: string[];
+    error: string | null;
+  };
 };
 
 export type AgentClient = 'codex' | 'claude';
@@ -175,10 +184,20 @@ async function readNotes(): Promise<NotesResponse> {
 
 export async function getLocalServiceHealth(): Promise<LocalServiceHealth> {
   try {
-    const payload = await fetchLocalApi<{ ok?: boolean }>('/health');
+    const payload = await fetchLocalApi<{
+      ok?: boolean;
+      platform?: string;
+      dataDirectory?: string;
+      localOcr?: boolean;
+      ocr?: LocalServiceHealth['ocr'];
+    }>('/health');
     return {
       ok: payload.ok !== false,
       source: 'sidecar',
+      platform: payload.platform,
+      dataDirectory: payload.dataDirectory,
+      localOcr: payload.localOcr,
+      ocr: payload.ocr,
     };
   } catch {
     return {

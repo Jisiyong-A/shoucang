@@ -1,0 +1,84 @@
+/* ═══════════════════════════════════════════════════════════════════
+ * KANKAN DOT/GRID UI — Design Tokens
+ * 90% black/white/gray · 10% status/accent · dot-matrix information
+ * language · pixel digits · large-radius geometric blocks
+ * ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Fonts ─────────────────────────────────────────────────────────── */
+/* VT323 (SIL OFL 1.1) — dot-matrix pixel face for digits/status/titles.
+   Latin only: CJK always falls back to system sans (readability first). */
+@font-face {
+  font-family: 'VT323';
+  src: url('/fonts/VT323-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* ── colors ── */
+  --bg: #000000;            /* OLED black field */
+  --surface: #0C0C0E;       /* panels */
+  --surface-2: #141417;     /* raised */
+  --surface-3: #1B1B1F;     /* pressed / hover */
+  --text: #F2F2F0;
+  --text-inverse: #0A0A0A;
+  --text-dim: #8B8B90;
+  --text-faint: #56565C;
+  --line: #232328;          /* hairline borders */
+  --line-strong: #3B3B43;
+  --grid: #2A2A30;          /* dot-matrix grid tint */
+  --accent: #D71921;        /* signal — small areas only */
+  --accent-soft: rgba(215, 25, 33, 0.12);
+  --success: #2ECC71;
+  --success-soft: rgba(46, 204, 113, 0.12);
+  --warning: #E19A37;
+
+  /* ── spacing scale (4px base) ── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* ── radius scale ── */
+  --radius-2: 8px;
+  --radius-3: 12px;
+  --radius-4: 16px;
+  --radius-6: 24px;         /* main panels */
+  --radius-8: 32px;
+  --radius-pill: 999px;
+
+  /* ── typography ── */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI Variable',
+    'Segoe UI', 'Microsoft YaHei', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Mono', 'SF Mono', 'JetBrains Mono',
+    'IBM Plex Mono', Consolas, monospace;
+  --font-dot: 'VT323', 'Cascadia Mono', monospace;
+  --text-xs: 10px;
+  --text-sm: 12px;
+  --text-md: 13.5px;
+  --text-lg: 17px;
+  --text-xl: 22px;
+
+  /* ── z-index scale ── */
+  --z-dot-field: 0;
+  --z-content: 1;
+  --z-sticky: 100;
+  --z-overlay: 300;
+  --z-dropzone: 220;
+  --z-setup: 310;
+  --z-toast: 400;
+
+  /* ── motion (Nothing-like rhythm: fast, subtle, no bounce) ── */
+  --motion-fast: 140ms;
+  --motion-panel: 240ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+
+  /* ── borders ── */
+  --border-hairline: 1px solid var(--line);
+  --border-strong: 1px solid var(--line-strong);
+}

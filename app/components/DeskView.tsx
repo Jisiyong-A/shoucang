@@ -1,12 +1,12 @@
-/* 看看收藏 · Windows redesign — dashboard / dot-geometry orchestrator
- * All state + side-effect logic lives here; presentational pieces are
- * extracted into: DashboardHeader, CategoryRail, NoteCard, NoteDetail,
- * ImportOverlay, SetupDialog, EmptyState, ui.
+/* 看看收藏 · KANKAN DOT/GRID UI — orchestrator
+ * Three-layer shell: TitleBar / Sidebar+Workspace / StatusBar.
+ * All state + side-effect logic lives here; presentational pieces live in
+ * shell/, notes/, search/, import/, setup/, ui/.
  */
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 
 import { Note } from '../types/xiaohongshu';
 import { useNotes, useApp } from '../lib/store';
@@ -32,15 +32,17 @@ import {
   renameDeskGroup,
 } from '../lib/desk-workspace.mjs';
 
-import { DotField } from './ui';
-import { DashboardHeader, SetupPanel } from './DashboardHeader';
-import { CategoryRail, RailGroup } from './CategoryRail';
-import { NoteCard } from './NoteCard';
-import { NoteDetail } from './NoteDetail';
-import { ImportOverlay } from './ImportOverlay';
-import { SetupDialog } from './SetupDialog';
+import { DotMatrix } from './ui/DotMatrix';
+import { TitleBar } from './shell/TitleBar';
+import { Sidebar, RailGroup } from './shell/Sidebar';
+import { StatusBar } from './shell/StatusBar';
+import { NoteGrid } from './notes/NoteGrid';
+import { NoteDetail } from './notes/NoteDetail';
+import { ImportDropzone, IDLE_IMPORT_FEEDBACK, ImportFeedback } from './import/ImportDropzone';
+import { SetupPanel } from './setup/SetupPanel';
 import { EmptyState } from './EmptyState';
-import { IDLE_IMPORT_FEEDBACK, ImportFeedback } from './DeskView.types';
+import { findMatchSources, MatchSource } from './search/SearchResultMeta';
+import { SetupPanel as SetupPanelType } from './DeskView.types';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -62,6 +64,13 @@ type DeskState = {
   knownNoteIds?: string[];
 };
 
+const IMPORT_STEP_DELAYS: Array<{ step: ImportFeedback['step']; afterMs: number }> = [
+  { step: 'resolve', afterMs: 300 },
+  { step: 'media', afterMs: 700 },
+  { step: 'ocr', afterMs: 1500 },
+  { step: 'index', afterMs: 2400 },
+];
+
 // ── Main view ──────────────────────────────────────────────────────────────
 
 export function DeskView() {
@@ -70,25 +79,28 @@ export function DeskView() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [deskState, setDeskState] = useState<DeskState>({ groups: [], noteGroupMap: {}, knownNoteIds: [] });
+  const [activeGroup, setActiveGroup] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Note | null>(null);
   const [serviceHealth, setServiceHealth] = useState<LocalServiceHealth>({ ok: false, source: 'sidecar' });
   const [healthChecked, setHealthChecked] = useState(false);
   const [importFeedback, setImportFeedback] = useState<ImportFeedback>(IDLE_IMPORT_FEEDBACK);
+  const [importDialog, setImportDialog] = useState(false);
+  const [importUrl, setImportUrl] = useState('');
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editingGroupName, setEditingGroupName] = useState('');
   const [draggedNoteId, setDraggedNoteId] = useState<string | null>(null);
   const [dropTargetGroupId, setDropTargetGroupId] = useState<string | null>(null);
   const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [setupPanel, setSetupPanel] = useState<SetupPanel | null>(null);
+  const [setupPanel, setSetupPanel] = useState<SetupPanelType | null>(null);
   const [setupInfo, setSetupInfo] = useState<LocalSetupInfo | null>(null);
   const [setupLoading, setSetupLoading] = useState(false);
   const [setupMessage, setSetupMessage] = useState('');
   const [connectingClient, setConnectingClient] = useState<AgentClient | null>(null);
   const [connectedClients, setConnectedClients] = useState<Set<AgentClient>>(() => new Set());
 
-  const loadLocalStatus = async () => {
+  const loadLocalStatus = useCallback(async () => {
     try {
       const health = await getLocalServiceHealth();
       setServiceHealth(health);
@@ -97,14 +109,17 @@ export function DeskView() {
     } finally {
       setHealthChecked(true);
     }
-  };
+  }, []);
 
-  const openSetupPanel = async (panel: SetupPanel) => {
+  const openSetupPanel = async (panel: SetupPanelType) => {
     setSetupPanel(panel);
     setSetupMessage('');
     setSetupLoading(true);
     try {
-      setSetupInfo(await getLocalSetupInfo());
+      const [info, health] = await Promise.all([getLocalSetupInfo(), getLocalServiceHealth()]);
+      setSetupInfo(info);
+      setServiceHealth(health);
+      setHealthChecked(true);
     } catch {
       setSetupInfo(null);
     } finally {
@@ -119,8 +134,7 @@ export function DeskView() {
       const result = await openBrowserExtensionSetup();
       setSetupMessage(result.message);
     } catch (error) {
-      const message = error instanceof Error && error.message ? error.message : '打开失败，请检查本地服务';
-      setSetupMessage(message);
+      setSetupMessage(error instanceof Error && error.message ? error.message : '打开失败，请检查本地服务');
     } finally {
       setSetupLoading(false);
     }
@@ -139,8 +153,7 @@ export function DeskView() {
         return next;
       });
     } catch (error) {
-      const message = error instanceof Error && error.message ? error.message : '连接失败';
-      setSetupMessage(message);
+      setSetupMessage(error instanceof Error && error.message ? error.message : '连接失败');
     } finally {
       setConnectingClient(null);
     }
@@ -152,10 +165,9 @@ export function DeskView() {
     }, delay);
   };
 
-  // Init: health + desk state (once notes arrive)
   useEffect(() => {
     void loadLocalStatus();
-  }, []);
+  }, [loadLocalStatus]);
 
   useEffect(() => {
     if (notes.length > 0) {
@@ -187,20 +199,52 @@ export function DeskView() {
       }));
   }, [deskState.groups, deskState.noteGroupMap, notes]);
 
+  const categories = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const note of notes) {
+      const name = note.category || '待分类';
+      counts[name] = (counts[name] || 0) + 1;
+    }
+    return Object.entries(counts)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [notes]);
+
   const ocrCount = useMemo(
     () => notes.filter((note) => Boolean((note.ocrText || '').trim())).length,
     [notes],
   );
 
+  const filteredForGrid = useMemo(() => {
+    if (hasActiveSearch) return visibleNotes;
+    if (activeGroup !== null) {
+      return visibleNotes.filter((note) => (deskState.noteGroupMap?.[note.id] || 'inbox') === activeGroup);
+    }
+    if (activeCategory !== null) {
+      return visibleNotes.filter((note) => (note.category || '待分类') === activeCategory);
+    }
+    return visibleNotes;
+  }, [hasActiveSearch, visibleNotes, activeGroup, activeCategory, deskState.noteGroupMap]);
+
+  const matchSources = useMemo(() => {
+    if (!hasActiveSearch) return undefined;
+    const map: Record<string, MatchSource[]> = {};
+    for (const note of visibleNotes) {
+      const sources = findMatchSources(note, searchQuery);
+      if (sources.length > 0) map[note.id] = sources;
+    }
+    return map;
+  }, [hasActiveSearch, visibleNotes, searchQuery]);
+
   // ── Actions ──
   const runImport = async (value: string) => {
     const input = value.trim();
     if (!input || state.isLoading) return;
-    const draggedCard = parseDraggedCardInput(input);
 
     if (!(serviceHealth.source === 'sidecar' && serviceHealth.ok)) {
       setImportFeedback({
         phase: 'error',
+        step: 'error',
         title: '本地服务未连接',
         message: '请重新启动看看收藏后再试',
       });
@@ -210,26 +254,39 @@ export function DeskView() {
 
     dispatch({ type: 'SET_LOADING', payload: true });
     dispatch({ type: 'SET_ERROR', payload: null });
+    setImportDialog(false);
     setImportFeedback({
       phase: 'recognized',
+      step: 'capture',
       title: getDraggedNoteTitle(input),
-      message: '已接收',
+      message: 'CAPTURE OK',
     });
 
     try {
-      await new Promise<void>((resolve) => window.setTimeout(resolve, 260));
-      setImportFeedback((current) => ({
-        ...current,
-        phase: 'processing',
-        message: draggedCard
-          ? '正在匿名解析正文和图片…'
-          : '正在保存图片与文字…',
-      }));
+      // progress the pipeline while the single import call runs
+      const stepTimers = IMPORT_STEP_DELAYS.map(({ step, afterMs }) =>
+        window.setTimeout(() => {
+          setImportFeedback((current) => ({
+            ...current,
+            phase: 'processing',
+            step,
+            message: step === 'resolve'
+              ? '正在匿名解析正文和图片…'
+              : step === 'media'
+                ? '正在下载图片…'
+                : step === 'ocr'
+                  ? '正在本地 OCR…'
+                  : '正在建立索引…',
+          }));
+        }, afterMs),
+      );
 
       const result = await importSharedNote(input);
+      stepTimers.forEach(window.clearTimeout);
       setNotes(result.notes);
       setImportFeedback({
         phase: 'complete',
+        step: 'index',
         title: result.note.title,
         message: result.created ? '已收录' : '内容已更新',
       });
@@ -239,7 +296,7 @@ export function DeskView() {
       }, 1800);
     } catch (error) {
       const message = error instanceof Error && error.message ? error.message : '导入失败，请检查链接后重试';
-      setImportFeedback({ phase: 'error', title: '没有收录成功', message });
+      setImportFeedback({ phase: 'error', step: 'error', title: '没有收录成功', message });
       dismissImportFeedback('error', 3600);
       dispatch({ type: 'SET_ERROR', payload: message });
     } finally {
@@ -263,6 +320,7 @@ export function DeskView() {
     } else {
       setImportFeedback({
         phase: 'error',
+        step: 'error',
         title: '没有识别到笔记',
         message: '请直接拖动小红书搜索结果里的笔记卡片或封面',
       });
@@ -275,7 +333,8 @@ export function DeskView() {
       const next = createDeskGroup(prev, '新分组') as DeskState;
       const created = next.groups?.find((group) => !prev.groups?.some((current) => current.id === group.id));
       if (created) {
-        setActiveCategory(created.id);
+        setActiveGroup(created.id);
+        setActiveCategory(null);
         setEditingGroupId(created.id);
         setEditingGroupName(created.name);
       }
@@ -304,13 +363,14 @@ export function DeskView() {
       setNotes(result.notes);
       setImportFeedback({
         phase: 'complete',
+        step: 'index',
         title: note.title,
         message: '已从收藏和本地图片中删除',
       });
       dismissImportFeedback('complete', 1800);
     } catch (error) {
       const message = error instanceof Error && error.message ? error.message : '删除失败，请重试';
-      setImportFeedback({ phase: 'error', title: '没有删除成功', message });
+      setImportFeedback({ phase: 'error', step: 'error', title: '没有删除成功', message });
       dismissImportFeedback('error', 3200);
     } finally {
       setDeletingNoteId(null);
@@ -324,23 +384,10 @@ export function DeskView() {
 
   const canUseLocalService = serviceHealth.source === 'sidecar' && serviceHealth.ok;
 
-  const subtitle = state.error
-    ? state.error
-    : state.isLoading
-      ? '加载中…'
-      : !healthChecked
-        ? 'LOCAL ENGINE · STARTING'
-        : !canUseLocalService
-          ? '本地服务离线'
-          : hasActiveSearch
-            ? `搜索 ${visibleNotes.length} 条`
-            : `${notes.length} 条笔记`;
 
   const isEmpty = notes.length === 0;
   const hasNoSearchResults = !isEmpty && hasActiveSearch && visibleNotes.length === 0;
-  const filteredForGrid = hasActiveSearch ? visibleNotes : (
-    activeCategory ? visibleNotes.filter((note) => (deskState.noteGroupMap?.[note.id] || 'inbox') === activeCategory) : visibleNotes
-  );
+  const groupFilterActive = activeGroup !== null || activeCategory !== null;
 
   return (
     <div
@@ -348,7 +395,7 @@ export function DeskView() {
       onDragEnter={(event) => {
         if (!draggedNoteId && acceptsExternalNoteDrag(event.dataTransfer.types)) {
           event.preventDefault();
-          setImportFeedback({ phase: 'dragging', title: '松手收录', message: '' });
+          setImportFeedback({ phase: 'dragging', step: 'idle', title: '松手收录', message: '' });
         }
       }}
       onDragOver={(event) => {
@@ -356,7 +403,7 @@ export function DeskView() {
           event.preventDefault();
           event.dataTransfer.dropEffect = 'copy';
           if (importFeedback.phase === 'idle') {
-            setImportFeedback({ phase: 'dragging', title: '松手收录', message: '' });
+            setImportFeedback({ phase: 'dragging', step: 'idle', title: '松手收录', message: '' });
           }
         }
       }}
@@ -368,43 +415,153 @@ export function DeskView() {
       }}
       onDrop={handleExternalDrop}
       style={{
-        minHeight: '100vh',
-        background: '#000',
+        height: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        background: 'var(--bg)',
         position: 'relative',
-        overflowY: 'auto',
-        overflowX: 'hidden',
       }}
     >
-      <DotField />
+      <DotMatrix
+        size="sparse"
+        ariaHidden
+        style={{
+          position: 'fixed',
+          inset: 0,
+          pointerEvents: 'none',
+          zIndex: 'var(--z-dot-field)',
+        }}
+      />
 
-      {/* Import feedback overlay */}
-      <ImportOverlay feedback={importFeedback} draggedNoteId={draggedNoteId} onDrop={handleExternalDrop} />
+      {/* Import overlay (dropzone + 5-step pipeline) */}
+      <ImportDropzone feedback={importFeedback} draggedNoteId={draggedNoteId} onDrop={handleExternalDrop} />
 
-      {/* Header */}
-      <DashboardHeader
-        subtitle={subtitle}
+      {/* Layer 1: title / status bar */}
+      <TitleBar
         searchQuery={searchQuery}
         onSearchChange={(value) => {
           setSearchQuery(value);
+          setActiveGroup(null);
           setActiveCategory(null);
         }}
-        totalNotes={notes.length}
-        groupCount={(deskState.groups || []).length}
-        ocrCount={ocrCount}
         health={serviceHealth}
         onOpenSetup={(panel) => void openSetupPanel(panel)}
+        onImportClick={() => setImportDialog(true)}
+        importing={state.isLoading}
       />
 
-      {/* Category rail */}
-      {!isEmpty && (
-        <CategoryRail
+      {/* Import dialog (paste link) */}
+      <AnimatePresence>
+        {importDialog && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 'var(--z-setup)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'rgba(0,0,0,0.6)',
+              padding: 24,
+            }}
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) setImportDialog(false);
+            }}
+          >
+            <div
+              role="dialog"
+              aria-label="导入笔记"
+              style={{
+                width: 'min(460px, 100%)',
+                borderRadius: 'var(--radius-6)',
+                border: 'var(--border-strong)',
+                background: 'var(--surface)',
+                padding: 18,
+              }}
+            >
+              <h3 style={{ margin: 0, fontFamily: 'var(--font-mono)', fontSize: 13, letterSpacing: '0.14em' }}>
+                IMPORT NOTE
+              </h3>
+              <input
+                autoFocus
+                value={importUrl}
+                onChange={(e) => setImportUrl(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void runImport(importUrl);
+                  if (e.key === 'Escape') setImportDialog(false);
+                }}
+                placeholder="粘贴小红书笔记链接"
+                aria-label="笔记链接"
+                style={{
+                  width: '100%',
+                  marginTop: 12,
+                  height: 36,
+                  padding: '0 12px',
+                  borderRadius: 'var(--radius-3)',
+                  border: 'var(--border-strong)',
+                  background: '#000',
+                  color: 'var(--text)',
+                  fontSize: 12.5,
+                  fontFamily: 'var(--font-mono)',
+                  outline: 'none',
+                }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
+                <button
+                  type="button"
+                  onClick={() => setImportDialog(false)}
+                  style={{
+                    height: 32,
+                    padding: '0 12px',
+                    borderRadius: 'var(--radius-3)',
+                    border: 'var(--border-hairline)',
+                    background: 'transparent',
+                    color: 'var(--text-dim)',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 11,
+                    cursor: 'pointer',
+                  }}
+                >
+                  取消
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void runImport(importUrl)}
+                  disabled={!importUrl.trim()}
+                  style={{
+                    height: 32,
+                    padding: '0 14px',
+                    borderRadius: 'var(--radius-3)',
+                    border: '1px solid var(--text)',
+                    background: importUrl.trim() ? 'var(--text)' : 'var(--surface-3)',
+                    color: importUrl.trim() ? 'var(--text-inverse)' : 'var(--text-faint)',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    cursor: importUrl.trim() ? 'pointer' : 'not-allowed',
+                  }}
+                >
+                  导入
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Layer 2: sidebar + workspace */}
+      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+        <Sidebar
           groups={railGroups}
+          categories={categories}
+          activeGroup={activeGroup}
           activeCategory={activeCategory}
           searchActive={hasActiveSearch}
           draggedNoteId={draggedNoteId}
           dropTargetGroupId={dropTargetGroupId}
-          onSelect={setActiveCategory}
-          onCreate={handleCreateGroup}
+          onSelectGroup={setActiveGroup}
+          onSelectCategory={setActiveCategory}
+          onCreateGroup={handleCreateGroup}
           onDropNote={handleMoveNoteToGroup}
           onRenameCommit={handleCommitRename}
           onStartRename={(groupId, name) => {
@@ -415,50 +572,55 @@ export function DeskView() {
           editingGroupName={editingGroupName}
           setEditingGroupName={setEditingGroupName}
         />
-      )}
 
-      {/* Canvas / grid */}
-      <div style={{ position: 'relative', zIndex: 1, padding: '22px 20px 96px' }}>
-        {isEmpty && !state.isLoading && <EmptyState />}
-        {hasNoSearchResults && <EmptyState noResults />}
+        {/* Main collection workspace */}
+        <main
+          style={{
+            position: 'relative',
+            flex: 1,
+            minWidth: 0,
+            overflowY: 'auto',
+            padding: '20px 20px 96px',
+          }}
+        >
+          {isEmpty && !state.isLoading && <EmptyState />}
+          {hasNoSearchResults && <EmptyState noResults />}
 
-        {filteredForGrid.length > 0 && (
-          <motion.div
-            layout
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(228px, 1fr))',
-              gap: 14,
-            }}
-          >
-            {filteredForGrid.map((note) => (
-              <NoteCard
-                key={note.id}
-                note={note}
-                dimmed={activeCategory !== null && (deskState.noteGroupMap?.[note.id] || 'inbox') !== activeCategory}
-                onClick={() => setExpanded(note)}
-                onDragStart={(noteId) => setDraggedNoteId(noteId)}
-                onDragEnd={handleDragEnd}
-              />
-            ))}
-          </motion.div>
-        )}
+          {filteredForGrid.length > 0 && (
+            <NoteGrid
+              notes={filteredForGrid}
+              matchSources={matchSources}
+              activeFilter={groupFilterActive && !hasActiveSearch}
+              onOpen={setExpanded}
+              onDragStart={(noteId) => setDraggedNoteId(noteId)}
+              onDragEnd={handleDragEnd}
+            />
+          )}
 
-        {filteredForGrid.length === 0 && !isEmpty && !hasNoSearchResults && (
-          <div
-            style={{
-              padding: '80px 0',
-              textAlign: 'center',
-              color: 'var(--text-faint)',
-              fontFamily: 'var(--font-mono)',
-              fontSize: 12,
-              letterSpacing: '0.14em',
-            }}
-          >
-            该分组暂无笔记
-          </div>
-        )}
+          {filteredForGrid.length === 0 && !isEmpty && !hasNoSearchResults && (
+            <div
+              style={{
+                padding: '80px 0',
+                textAlign: 'center',
+                color: 'var(--text-faint)',
+                fontFamily: 'var(--font-mono)',
+                fontSize: 12,
+                letterSpacing: '0.14em',
+              }}
+            >
+              NO ITEMS
+            </div>
+          )}
+        </main>
       </div>
+
+      {/* Layer 3: engine / import status */}
+      <StatusBar
+        health={serviceHealth}
+        noteCount={notes.length}
+        ocrCount={ocrCount}
+        onOpenSetup={() => void openSetupPanel('settings')}
+      />
 
       {/* Detail overlay */}
       <AnimatePresence>
@@ -476,8 +638,8 @@ export function DeskView() {
       {/* Setup dialog */}
       <AnimatePresence>
         {setupPanel && (
-          <SetupDialog
-            panel={setupPanel}
+          <SetupPanel
+            health={serviceHealth}
             info={setupInfo}
             loading={setupLoading}
             message={setupMessage}
@@ -486,6 +648,7 @@ export function DeskView() {
             onClose={() => setSetupPanel(null)}
             onOpenExtension={() => void handleOpenExtensionSetup()}
             onConnectAgent={(client) => void handleConnectAgent(client)}
+            onRecheck={() => void openSetupPanel(setupPanel)}
           />
         )}
       </AnimatePresence>
