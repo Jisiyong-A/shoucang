@@ -12,7 +12,6 @@
     "local-api": "node ./scripts/local-api.mjs",
     "tauri:build": "tauri build",
     "tauri:dev": "tauri dev",
-    "tauri": "tauri",
     "lint": "eslint app scripts next.config.ts"
   },
   "dependencies": {

@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from 'react';
 import { DeskView } from './components/DeskView';
-import { BootstrapStatus } from './components/BootstrapStatus';
 import { useApp } from './lib/store';
 import { getNotes } from './lib/xhs-client';
 
@@ -39,10 +38,5 @@ export default function Home() {
     };
   }, [dispatch]); // dispatch is stable, no infinite loop
 
-  return (
-    <>
-      <DeskView />
-      <BootstrapStatus />
-    </>
-  );
+  return <DeskView />;
 }
