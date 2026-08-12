@@ -1,0 +1,9 @@
+[package]
+name = "kankan-storage"
+version = "0.1.0"
+description = "SQLite knowledge store for 看看收藏 (Android + desktop shared)"
+edition = "2021"
+
+[dependencies]
+# bundled: compiles SQLite from source (FTS5 enabled by default in bundled builds)
+rusqlite = { version = "0.40", features = ["bundled"] }
