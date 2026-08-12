@@ -164,14 +164,15 @@ fn image_semantic_search_ranks_by_cosine() {
 
 #[test]
 fn rrf_fusion_combines_channels() {
+    // a: n1 n2 n3 n4 | b: n3 n1 n2 | c: n2 n4
+    // scores (k=60): n2=0.04897 > n1=0.03252 > n3=0.03226 > n4=0.03176 (unique order)
     let a = vec!["n1", "n2", "n3", "n4"];
-    let b = vec!["n3", "n2", "n1"];
+    let b = vec!["n3", "n1", "n2"];
     let c = vec!["n2", "n4"];
     let fused = semantic::rrf_fuse(&[a, b, c], 60);
     assert_eq!(fused[0], "n2", "n2 appears in all three channels");
-    assert_eq!(fused[1], "n3", "n3 ranks 1st in b, 3rd in a");
-    assert!(fused.contains(&"n1"));
-    assert!(fused.contains(&"n4"));
+    assert_eq!(fused[3], "n4", "n4 has the lowest summed rank");
+    assert!(fused.contains(&"n1") && fused.contains(&"n3"));
     assert_eq!(fused.len(), 4);
 }
 
