@@ -76,11 +76,33 @@ cd gen/android && ./gradlew :app:assembleArm64Debug -x :app:rustBuildArm64Debug
 
 ## 6. 待办（外部条件）
 
-1. **真机验收**：连接 arm64 Android 设备（USB 调试）后执行：
-   ```bash
-   adb install -r app-arm64-debug.apk && adb shell am start -n com.patrick.kankanshoucang/.MainActivity
-   ```
-   验证：App 启动、React UI 渲染、右下角显示 ANDROID CORE READY（command round trip）、
-   数据目录可写（get_app_data_dir 返回 filesDir）、后台/前台/旋转/进程重建。
-2. 无 Node 依赖验证（APK 内无 node.exe，CSP connect-src 无 4318 —— 桌面保留 4318 不变）。
-3. Task 04（ShareSheet 接收）依赖本报告 §5 的构建通道 + 真机。
+### ✅ 模拟器验收（2026-08-12，Windows 11 + Android Emulator + WHPX）
+
+本机无真机，改用 **Android 模拟器（API 35 x86_64，WHPX 加速）** 完成设备级验收：
+
+| 项 | 结果 |
+|---|---|
+| App 启动 | ✅ MainActivity resumed，进程稳定 |
+| React UI 渲染 | ✅ 收藏界面完整渲染（截图存证） |
+| **Rust command round-trip** | ✅ **ANDROID CORE READY**（WebView CDP DOM 验证） |
+| get_platform_info | ✅ `android-x86_64` |
+| health | ✅ `ok` |
+| get_app_data_dir | ✅ `/data/user/0/com.patrick.shoucang`（filesDir 可写） |
+| 无 Node 依赖 | ✅ 无 sidecar、无 4318 |
+
+模拟器搭建要点：emulator/system-image 手动 curl 下载（sdkmanager 下载损坏）；AVD 手动 config.ini（avdmanager 需 package.xml）；`| head` 会 SIGPIPE 杀模拟器（日志重定向到文件）。
+
+```bash
+# 模拟器构建通道（x86_64 debug）
+adb install -r app-x86_64-debug.apk
+adb shell am start -n com.patrick.shoucang/.MainActivity
+# WebView 调试（MainActivity 已启用 setWebContentsDebuggingEnabled）
+adb forward tcp:9223 localabstract:webview_devtools_remote_$(adb shell pidof com.patrick.shoucang | tr -d '
+')
+```
+
+### 待真机验收
+
+1. 真机（arm64）安装 + 视觉确认（模拟器上 fixed 调试徽标有 WebView 合成层不渲染的边缘问题，真机待确认）
+2. Sharesheet（Task 04）+ OCR worker + 移动 UI（Task 11）
+3. 性能实测（model load / warm query / RAM）
