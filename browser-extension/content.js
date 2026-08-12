@@ -7,7 +7,8 @@ let cachedPageData = null;
 let requestedNoteId = '';
 
 function getNoteId() {
-  return location.pathname.match(/^\/(?:explore|search_result|discovery\/item)\/([0-9a-f]{24})(?:\/|$)/i)?.[1] || '';
+  // XHS note IDs are typically 22-26 hex chars (varies by generation)
+  return location.pathname.match(/^\/(?:explore|search_result|discovery\/item)\/([0-9a-f]{20,26})(?:\/|$)/i)?.[1] || '';
 }
 
 function noteCardFromDragTarget(target) {

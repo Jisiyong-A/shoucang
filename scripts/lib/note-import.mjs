@@ -7,9 +7,10 @@ const ALLOWED_HOSTS = new Set([
 ]);
 
 const NOTE_PATH_PATTERNS = [
-  /^\/explore\/([0-9a-f]{24})(?:\/|$)/i,
-  /^\/search_result\/([0-9a-f]{24})(?:\/|$)/i,
-  /^\/discovery\/item\/([0-9a-f]{24})(?:\/|$)/i,
+  // XHS note IDs vary in length (20-26 hex chars); match the common range.
+  /^\/explore\/([0-9a-f]{20,26})(?:\/|$)/i,
+  /^\/search_result\/([0-9a-f]{20,26})(?:\/|$)/i,
+  /^\/discovery\/item\/([0-9a-f]{20,26})(?:\/|$)/i,
 ];
 
 function extractUrls(input) {
@@ -121,7 +122,8 @@ export function normalizeImportedNote(payload) {
   sourceUrlObject.hash = '';
   const sourceUrl = sourceUrlObject.toString();
   const noteId = extractNoteIdFromUrl(sourceUrl) || cleanText(payload.id, 100);
-  if (!/^[0-9a-f]{24}$/i.test(noteId)) {
+  // XHS note IDs are typically 20-26 hex chars (varies by generation)
+  if (!/^[0-9a-f]{20,26}$/i.test(noteId)) {
     throw new Error('当前页面不是可识别的小红书笔记');
   }
 

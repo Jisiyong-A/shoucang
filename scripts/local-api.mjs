@@ -543,7 +543,8 @@ function queueNoteDelete(noteId) {
 }
 
 async function sendMediaFile(request, response, pathname) {
-  const match = pathname.match(/^\/media\/([0-9a-f]{24})\/((?:\d{2}\.(?:avif|gif|heic|heif|jpg|png|webp))|video\.mp4)$/i);
+  // XHS note IDs are typically 22-26 hex chars (varies by generation)
+  const match = pathname.match(/^\/media\/([0-9a-f]{20,26})\/((?:\d{2}\.(?:avif|gif|heic|heif|jpg|png|webp))|video\.mp4)$/i);
   if (!match) return false;
 
   const filePath = path.join(mediaDirectory, match[1].toLowerCase(), match[2].toLowerCase());
