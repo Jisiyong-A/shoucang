@@ -251,15 +251,16 @@ export function SetupPanel({
                 </Panel>
               </section>
 
-              {/* AGENT / MCP */}
+              {/* AGENT BRIDGE */}
               <section aria-label="Agent MCP">
-                <MatrixLabel style={{ display: 'block', marginBottom: 4 }}>AGENT / MCP</MatrixLabel>
+                <MatrixLabel style={{ display: 'block', marginBottom: 4 }}>AGENT BRIDGE</MatrixLabel>
                 <Panel radius="var(--radius-3)" style={{ padding: '2px 14px', marginBottom: 16 }}>
                   <AgentPanel
                     info={info}
                     connectingClient={connectingClient}
                     connectedClients={connectedClients}
                     onConnectAgent={onConnectAgent}
+                    onRepairAgent={onConnectAgent}
                     message={message}
                   />
                 </Panel>

@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
-import { existsSync } from 'node:fs';
+import { copyFileSync, existsSync, readdirSync } from 'node:fs';
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
-import { execFile } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -75,9 +75,10 @@ async function resolveAgentExecutable(client) {
 async function buildSetupResponse() {
   const extensionDirectory = resolveExtensionDirectory();
   const mcpServerPath = resolveMcpServerPath();
-  const [codexPath, claudePath] = await Promise.all([
+  const [codexPath, claudePath, hermesPath] = await Promise.all([
     resolveAgentExecutable('codex'),
     resolveAgentExecutable('claude'),
+    resolveAgentExecutable('hermes'),
   ]);
   let extensionVersion = null;
   if (extensionDirectory) {
@@ -104,37 +105,138 @@ async function buildSetupResponse() {
       nodePath: process.execPath,
       dataDirectory,
       clients: {
-        codex: { available: Boolean(codexPath) },
-        claude: { available: Boolean(claudePath) },
+        hermes: {
+          available: Boolean(hermesPath),
+          connected: connectedAgents.has('hermes'),
+        },
+        codex: {
+          available: Boolean(codexPath),
+          connected: connectedAgents.has('codex'),
+        },
+        claude: {
+          available: Boolean(claudePath),
+          connected: connectedAgents.has('claude'),
+        },
+      },
+      manualConfig: {
+        name: MCP_SERVER_NAME,
+        command: process.execPath,
+        args: [mcpServerPath],
+        env: { LOCAL_APP_DATA_DIR: dataDirectory },
       },
     },
   };
 }
 
+const connectedAgents = new Set();
+
+/** Probe whether an agent already has the MCP server registered. */
+async function probeConnectedAgents() {
+  connectedAgents.clear();
+  const probes = [
+    ['codex', ['mcp', 'list']],
+    ['claude', ['mcp', 'list', '--scope', 'user']],
+    ['hermes', ['mcp', 'list']],
+  ];
+  for (const [client, args] of probes) {
+    try {
+      const executable = await resolveAgentExecutable(client);
+      if (!executable) continue;
+      const { stdout } = await execFileAsync(executable, args, { timeout: 8000, maxBuffer: 1024 * 1024 });
+      if (stdout.includes(MCP_SERVER_NAME)) connectedAgents.add(client);
+    } catch {
+      // not connected or CLI unavailable — leave unset
+    }
+  }
+}
+
+async function backupHermesConfig() {
+  const roots = [path.join(os.homedir(), 'AppData', 'Local', 'hermes')];
+  const candidates = [];
+  for (const root of roots) {
+    for (const name of ['config.yaml', 'config.yml', 'config.json']) {
+      const file = path.join(root, name);
+      if (existsSync(file)) candidates.push(file);
+    }
+  }
+  const profilesDir = path.join(os.homedir(), 'AppData', 'Local', 'hermes', 'profiles');
+  if (existsSync(profilesDir)) {
+    for (const entry of readdirSync(profilesDir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      for (const name of ['config.yaml', 'config.yml', 'config.json']) {
+        const file = path.join(profilesDir, entry.name, name);
+        if (existsSync(file)) candidates.push(file);
+      }
+    }
+  }
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  for (const file of candidates) {
+    copyFileSync(file, `${file}.kankan-backup-${stamp}`);
+  }
+  return candidates.length;
+}
+
 async function connectAgentClient(client) {
-  if (client !== 'codex' && client !== 'claude') {
+  if (client !== 'codex' && client !== 'claude' && client !== 'hermes') {
     throw new Error('不支持的 Agent 客户端');
   }
   const executable = await resolveAgentExecutable(client);
   if (!executable) {
-    throw new Error(client === 'codex' ? '没有找到 Codex CLI' : '没有找到 Claude Code');
+    const names = { codex: 'Codex CLI', claude: 'Claude Code', hermes: 'Hermes' };
+    throw new Error(`没有找到 ${names[client]}`);
   }
   const mcpServerPath = resolveMcpServerPath();
   if (!mcpServerPath) throw new Error('本地 Agent 服务文件不存在');
 
   const removeArgs = client === 'codex'
     ? ['mcp', 'remove', MCP_SERVER_NAME]
-    : ['mcp', 'remove', '--scope', 'user', MCP_SERVER_NAME];
+    : client === 'claude'
+      ? ['mcp', 'remove', '--scope', 'user', MCP_SERVER_NAME]
+      : ['mcp', 'remove', MCP_SERVER_NAME];
   try {
     await execFileAsync(executable, removeArgs, { timeout: 15000, maxBuffer: 512 * 1024 });
   } catch {
     // A missing previous configuration is expected on first setup.
   }
 
-  const addArgs = client === 'codex'
-    ? ['mcp', 'add', MCP_SERVER_NAME, '--env', `LOCAL_APP_DATA_DIR=${dataDirectory}`, '--', process.execPath, mcpServerPath]
-    : ['mcp', 'add', '--scope', 'user', MCP_SERVER_NAME, '-e', `LOCAL_APP_DATA_DIR=${dataDirectory}`, '--', process.execPath, mcpServerPath];
-  await execFileAsync(executable, addArgs, { timeout: 30000, maxBuffer: 1024 * 1024 });
+  // Hermes config backup before any modification (Task 06 §3).
+  if (client === 'hermes') {
+    await backupHermesConfig();
+  }
+
+  if (client === 'hermes') {
+    // hermes mcp add is discovery-first: it prompts for tool selection.
+    // Answer the prompt non-interactively (accept all tools).
+    await new Promise((resolve, reject) => {
+      const child = spawn(executable, [
+        'mcp', 'add', MCP_SERVER_NAME,
+        '--command', process.execPath,
+        '--env', `LOCAL_APP_DATA_DIR=${dataDirectory}`,
+        '--args', mcpServerPath,
+      ], { stdio: ['pipe', 'pipe', 'inherit'], windowsHide: true });
+      const timer = setTimeout(() => { child.kill(); reject(new Error('hermes mcp add 超时')); }, 45000);
+      let out = '';
+      child.stdout.on('data', (chunk) => {
+        out += chunk;
+        // answer tool-selection prompts as they appear
+        if (/\[y\/n\]|\(Y\/n\)|\[Y\/n\]/i.test(out) || /启用|use tool|enable/i.test(out.slice(-120))) {
+          child.stdin.write('Y\n');
+        }
+      });
+      child.on('error', reject);
+      child.on('exit', (code) => {
+        clearTimeout(timer);
+        if (code === 0) resolve();
+        else reject(new Error(`hermes mcp add 退出码 ${code}: ${out.slice(-400)}`));
+      });
+    });
+  } else {
+    const addArgs = client === 'codex'
+      ? ['mcp', 'add', MCP_SERVER_NAME, '--env', `LOCAL_APP_DATA_DIR=${dataDirectory}`, '--', process.execPath, mcpServerPath]
+      : ['mcp', 'add', '--scope', 'user', MCP_SERVER_NAME, '-e', `LOCAL_APP_DATA_DIR=${dataDirectory}`, '--', process.execPath, mcpServerPath];
+    await execFileAsync(executable, addArgs, { timeout: 30000, maxBuffer: 1024 * 1024 });
+  }
+  connectedAgents.add(client);
 
   return {
     ok: true,
@@ -510,6 +612,7 @@ async function listenWithRetry() {
 }
 
 async function startServer() {
+  probeConnectedAgents().catch(() => {});
   await ensureDataDirectory();
   const probe = await probeLocalOcr();
   if (probe.engine) {

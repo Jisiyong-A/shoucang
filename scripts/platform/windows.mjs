@@ -34,6 +34,13 @@ export function knownExecutableCandidates(client) {
       path.join(home, 'AppData', 'Roaming', 'npm', 'claude.cmd'),
     ];
   }
+  if (client === 'hermes') {
+    return [
+      path.join(home, 'AppData', 'Local', 'hermes', 'hermes.exe'),
+      path.join(home, 'AppData', 'Local', 'Programs', 'hermes', 'hermes.exe'),
+      path.join(home, 'AppData', 'Roaming', 'npm', 'hermes.cmd'),
+    ];
+  }
   return [];
 }
 

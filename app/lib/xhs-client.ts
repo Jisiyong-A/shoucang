@@ -30,7 +30,7 @@ export type LocalServiceHealth = {
   };
 };
 
-export type AgentClient = 'codex' | 'claude';
+export type AgentClient = 'hermes' | 'codex' | 'claude';
 
 export type LocalSetupInfo = {
   extension: {
@@ -43,9 +43,15 @@ export type LocalSetupInfo = {
   agent: {
     available: boolean;
     serverPath: string | null;
-    nodePath: string;
+    nodePath: string | null;
     dataDirectory: string;
-    clients: Record<AgentClient, { available: boolean }>;
+    clients: Record<AgentClient, { available: boolean; connected?: boolean }>;
+    manualConfig?: {
+      name: string;
+      command: string;
+      args: string[];
+      env: Record<string, string>;
+    };
   };
 };
 
