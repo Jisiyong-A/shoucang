@@ -73,6 +73,9 @@ async function resolveAgentExecutable(client) {
 }
 
 async function buildSetupResponse() {
+  // Refresh agent connection state on every /setup read so a stale
+  // startup probe can't leave the UI showing wrong CONNECTED status.
+  probeConnectedAgents().catch(() => {});
   const extensionDirectory = resolveExtensionDirectory();
   const mcpServerPath = resolveMcpServerPath();
   const [codexPath, claudePath, hermesPath] = await Promise.all([
@@ -129,25 +132,36 @@ async function buildSetupResponse() {
 }
 
 const connectedAgents = new Set();
+let probePromise = null;
+let lastProbeDoneAt = 0;
+const PROBE_TTL_MS = 30_000;
 
-/** Probe whether an agent already has the MCP server registered. */
-async function probeConnectedAgents() {
-  connectedAgents.clear();
-  const probes = [
-    ['codex', ['mcp', 'list']],
-    ['claude', ['mcp', 'list', '--scope', 'user']],
-    ['hermes', ['mcp', 'list']],
-  ];
-  for (const [client, args] of probes) {
-    try {
-      const executable = await resolveAgentExecutable(client);
-      if (!executable) continue;
-      const { stdout } = await execFileAsync(executable, args, { timeout: 8000, maxBuffer: 1024 * 1024 });
-      if (stdout.includes(MCP_SERVER_NAME)) connectedAgents.add(client);
-    } catch {
-      // not connected or CLI unavailable — leave unset
+/** Probe whether an agent already has the MCP server registered.
+ * Cached with a 30s TTL: readers never restart/clear an in-flight probe,
+ * so they always observe the last completed state. */
+async function probeConnectedAgents(force = false) {
+  if (!force && Date.now() - lastProbeDoneAt < PROBE_TTL_MS) return;
+  if (probePromise) return probePromise;
+  probePromise = (async () => {
+    connectedAgents.clear();
+    const probes = [
+      ['codex', ['mcp', 'list']],
+      ['claude', ['mcp', 'list', '--scope', 'user']],
+      ['hermes', ['mcp', 'list']],
+    ];
+    for (const [client, args] of probes) {
+      try {
+        const executable = await resolveAgentExecutable(client);
+        if (!executable) continue;
+        const { stdout } = await execFileAsync(executable, args, { timeout: 8000, maxBuffer: 1024 * 1024 });
+        if (stdout.includes(MCP_SERVER_NAME)) connectedAgents.add(client);
+      } catch {
+        // not connected or CLI unavailable — leave unset
+      }
     }
-  }
+    lastProbeDoneAt = Date.now();
+  })().finally(() => { probePromise = null; });
+  return probePromise;
 }
 
 async function backupHermesConfig() {
@@ -493,9 +507,22 @@ const server = createServer(async (request, response) => {
     return;
   }
 
-  if (!isAllowedOrigin(request.headers.origin)) {
+  const url = new URL(request.url, `http://${request.headers.host || '127.0.0.1'}`);
+
+  // The extension content script heartbeats from the page context, so its
+  // Origin is the XHS site — allow that single benign endpoint through
+  // while keeping every other route on the strict allowlist.
+  const isHeartbeat = request.method === 'POST' && url.pathname === '/setup/extension/heartbeat';
+  if (!isHeartbeat && !isAllowedOrigin(request.headers.origin)) {
     sendJson(request, response, 403, { ok: false, error: 'Origin not allowed' });
     return;
+  }
+  if (isHeartbeat && request.headers.origin && !isAllowedOrigin(request.headers.origin)) {
+    const host = String(request.headers.origin || '');
+    if (!/xiaohongshu\.com$/i.test(host)) {
+      sendJson(request, response, 403, { ok: false, error: 'Origin not allowed' });
+      return;
+    }
   }
 
   if (request.method === 'OPTIONS') {
@@ -504,8 +531,6 @@ const server = createServer(async (request, response) => {
     response.end();
     return;
   }
-
-  const url = new URL(request.url, `http://${request.headers.host || '127.0.0.1'}`);
 
   try {
     if (request.method === 'GET' && url.pathname === '/health') {
