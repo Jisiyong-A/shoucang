@@ -1,5 +1,6 @@
 import { createServer } from 'node:http';
-import { copyFileSync, existsSync, readdirSync } from 'node:fs';
+import { copyFileSync, createReadStream, existsSync, readdirSync } from 'node:fs';
+import { stat as fsStat } from 'node:fs/promises';
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { execFile, spawn } from 'node:child_process';
 import os from 'node:os';
@@ -312,6 +313,7 @@ const mediaContentTypes = new Map([
   ['.jpg', 'image/jpeg'],
   ['.png', 'image/png'],
   ['.webp', 'image/webp'],
+  ['.mp4', 'video/mp4'],
 ]);
 
 function isAllowedOrigin(origin) {
@@ -541,21 +543,45 @@ function queueNoteDelete(noteId) {
 }
 
 async function sendMediaFile(request, response, pathname) {
-  const match = pathname.match(/^\/media\/([0-9a-f]{24})\/(\d{2}\.(?:avif|gif|heic|heif|jpg|png|webp))$/i);
+  const match = pathname.match(/^\/media\/([0-9a-f]{24})\/((?:\d{2}\.(?:avif|gif|heic|heif|jpg|png|webp))|video\.mp4)$/i);
   if (!match) return false;
 
   const filePath = path.join(mediaDirectory, match[1].toLowerCase(), match[2].toLowerCase());
   try {
-    const body = await readFile(filePath);
+    const stat = await fsStat(filePath);
+    const contentType = mediaContentTypes.get(path.extname(filePath)) || 'application/octet-stream';
+    const rangeHeader = request.headers.range;
     applyCorsHeaders(request, response);
+
+    if (rangeHeader) {
+      const matchRange = rangeHeader.match(/bytes=(\d*)-(\d*)/);
+      const start = matchRange?.[1] ? Number.parseInt(matchRange[1], 10) : 0;
+      const end = matchRange?.[2] ? Number.parseInt(matchRange[2], 10) : stat.size - 1;
+      if (start >= stat.size || start > end) {
+        response.writeHead(416, { 'Content-Range': `bytes */${stat.size}` });
+        response.end();
+        return true;
+      }
+      response.writeHead(206, {
+        'Content-Type': contentType,
+        'Content-Length': end - start + 1,
+        'Content-Range': `bytes ${start}-${end}/${stat.size}`,
+        'Accept-Ranges': 'bytes',
+        'Cache-Control': 'private, max-age=31536000, immutable',
+      });
+      createReadStream(filePath, { start, end }).pipe(response);
+      return true;
+    }
+
     response.writeHead(200, {
-      'Content-Type': mediaContentTypes.get(path.extname(filePath)) || 'application/octet-stream',
-      'Content-Length': body.byteLength,
+      'Content-Type': contentType,
+      'Content-Length': stat.size,
+      'Accept-Ranges': 'bytes',
       'Cache-Control': 'private, max-age=31536000, immutable',
     });
-    response.end(body);
+    createReadStream(filePath).pipe(response);
   } catch {
-    sendJson(request, response, 404, { ok: false, error: 'Image not found' });
+    sendJson(request, response, 404, { ok: false, error: 'Media not found' });
   }
   return true;
 }

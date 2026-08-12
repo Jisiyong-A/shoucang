@@ -166,6 +166,15 @@ function videoUrlFromNote(note) {
   return candidates[0] || '';
 }
 
+/** Regex-scan raw HTML for XHS video CDN URLs (signed mp4 stream links
+ *  live in script payloads, not __INITIAL_STATE__). */
+function videoUrlFromHtml(html) {
+  const matches = String(html || '').match(/https?:\/\/sns-video[a-z0-9-]*\.xhscdn\.com[^"'\\\s)]*\.mp4[^"'\\\s)]*/g) || [];
+  if (matches.length === 0) return '';
+  const tier = (url) => Number.parseInt(url.match(/_(\d{2,4})\.mp4/)?.[1] || '0', 10);
+  return matches.sort((a, b) => tier(b) - tier(a))[0] || '';
+}
+
 function notePayloadFromHtml(html, noteId, sourceUrl) {
   // 风控/失效页面 detection: Xiaohongshu serves /404/sec_* pages (which
   // contain no note data) when the anonymous request is challenged. Never
@@ -183,7 +192,7 @@ function notePayloadFromHtml(html, noteId, sourceUrl) {
 
   const user = note.user || note.author || {};
   const imageUrls = imageUrlsFromNote(note);
-  const videoUrl = videoUrlFromNote(note);
+  const videoUrl = videoUrlFromNote(note) || videoUrlFromHtml(html);
   const title = firstString(note, ['title', 'displayTitle']);
   const content = firstString(note, ['desc', 'description', 'content']);
   if (!title && !content && imageUrls.length === 0 && !videoUrl) {

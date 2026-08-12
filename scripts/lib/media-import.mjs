@@ -149,19 +149,21 @@ export async function localizeNoteMedia(note, options) {
   const sourceUrls = Array.from(new Set(
     (note.imageUrls || []).filter(isAllowedRemoteImageUrl),
   )).slice(0, 20);
-  if (sourceUrls.length === 0) {
+  const noteDirectory = path.join(options.mediaDirectory, note.id);
+  await mkdir(noteDirectory, { recursive: true });
+
+  if (sourceUrls.length === 0 && !note.videoUrl) {
     return {
       ...note,
       sourceImageUrls: [],
       imageUrls: [],
       imageOcr: [],
       ocrText: '',
+      videoLocalPath: '',
+      videoError: '',
       mediaStatus: 'none',
     };
   }
-
-  const noteDirectory = path.join(options.mediaDirectory, note.id);
-  await mkdir(noteDirectory, { recursive: true });
   const downloads = await mapWithConcurrency(
     sourceUrls,
     options.downloadConcurrency || 2,

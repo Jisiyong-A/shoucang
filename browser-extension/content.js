@@ -128,18 +128,23 @@ function captureCurrentNote() {
         if (video?.src && /^https?:\/\//.test(video.src)) return video.src;
         const source = document.querySelector('video source[src]');
         if (source?.src && /^https?:\/\//.test(source.src)) return source.src;
-        // __INITIAL_STATE__ fallback
-        const marker = 'window.__INITIAL_STATE__=';
-        const script = Array.from(document.querySelectorAll('script')).find((el) => el.textContent.includes(marker));
-        if (script) {
-          const start = script.textContent.indexOf(marker) + marker.length;
-          const end = script.textContent.indexOf('</script>', start);
-          const serialized = script.textContent.slice(start, end === -1 ? undefined : end).trim().replace(/;$/, '').replace(/\bundefined\b/g, 'null');
-          const state = JSON.parse(serialized);
-          const detail = state?.note?.noteDetailMap?.[id]?.note;
-          const v = detail?.video;
-          const candidate = v?.url || v?.masterUrl || v?.media?.video?.h264?.[0]?.masterUrl || '';
-          if (/^https?:\/\//.test(candidate)) return candidate;
+        // XHS plays video via MSE (blob: src) — the real signed stream
+        // URL lives in one of the page's script payloads on the
+        // sns-video-*.xhscdn.com CDN (e.g. _259.mp4/_301.mp4 = quality
+        // tiers; pick the largest). Regex-scan ALL scripts.
+        const pattern = /https?:\/\/sns-video[a-z0-9-]*\.xhscdn\.com[^"'\\\s)]*\.mp4[^"'\\\s)]*/g;
+        const found = [];
+        for (const el of document.querySelectorAll('script')) {
+          const text = el.textContent;
+          if (text.includes('sns-video')) {
+            const matches = text.match(pattern) || [];
+            found.push(...matches);
+          }
+        }
+        if (found.length > 0) {
+          // pick the highest quality tier by the _NNN.mp4 marker
+          const tier = (url) => Number.parseInt(url.match(/_(\d{2,4})\.mp4/)?.[1] || '0', 10);
+          return found.sort((a, b) => tier(b) - tier(a))[0];
         }
       } catch {
         // no video on this page — normal image notes hit here

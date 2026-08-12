@@ -1,1 +1,1 @@
-acef6b4f6f253b27da7216dc46f459541aa92257c576590bc3a794f786c20b13 *ShouCang-Windows-x64-0.1.0-beta.exe
+062f26a3fec268937da0387681fa776025f6d8d9e98e1e6f39c9a9944bcccbb2 *ShouCang-Windows-x64-0.1.0-beta.exe
