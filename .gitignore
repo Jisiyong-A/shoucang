@@ -58,3 +58,4 @@ semantic-spike/
 # foreign experiment dir (semantic research spike)
 semantic-spike/
 public/models/
+# release binaries — download from GitHub Releases, never commit
