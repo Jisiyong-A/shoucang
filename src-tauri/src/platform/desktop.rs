@@ -5,7 +5,7 @@ use std::{
     fs::{self, OpenOptions},
     path::PathBuf,
     process::{Child, Command, Stdio},
-    sync::Mutex,
+    sync::{Arc, Mutex},
 };
 
 use tauri::{path::BaseDirectory, Manager};
@@ -33,9 +33,9 @@ fn normalize_win_path(value: &std::path::Path) -> std::path::PathBuf {
     std::path::PathBuf::from(normalized)
 }
 
-pub struct LocalApiState(pub Mutex<Option<Child>>);
+pub struct LocalApiState(pub Arc<Mutex<Option<Child>>>);
 
-fn resolve_local_api_script(app: &tauri::App) -> Result<PathBuf, String> {
+fn resolve_local_api_script(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     let cwd = std::env::current_dir().map_err(|err| err.to_string())?;
     let candidates = [
         cwd.join("scripts/local-api.mjs"),
@@ -59,7 +59,7 @@ fn resolve_local_api_script(app: &tauri::App) -> Result<PathBuf, String> {
     Err("local-api.mjs not found".to_string())
 }
 
-fn resolve_node_binary(app: &tauri::App) -> String {
+fn resolve_node_binary(app: &tauri::AppHandle) -> String {
     if let Some(explicit) = std::env::var("LOCAL_API_NODE_BIN")
         .ok()
         .map(|value| value.trim().to_string())
@@ -101,7 +101,7 @@ fn resolve_node_binary(app: &tauri::App) -> String {
     "node".to_string()
 }
 
-fn spawn_local_api(app: &tauri::App) -> Result<Child, String> {
+fn spawn_local_api(app: &tauri::AppHandle) -> Result<Child, String> {
     let script_path = normalize_win_path(&resolve_local_api_script(app)?);
     let node_binary = normalize_win_path(&std::path::PathBuf::from(resolve_node_binary(app)));
     let data_dir = normalize_win_path(&app.path().app_local_data_dir().map_err(|err| err.to_string())?);
@@ -190,15 +190,64 @@ fn wait_for_local_api(data_dir: &std::path::Path, port: &str, child: &mut Child)
     }
 }
 
-/// Desktop bootstrap hook: spawn the Node sidecar (unchanged desktop behavior).
+/// Watchdog: if the sidecar dies (crash, external kill, EADDRINUSE after
+/// another process stole the port), respawn it so the app stays usable.
+/// Backs off and stops after 3 consecutive failed respawns.
+fn start_watchdog(app: tauri::AppHandle, child_arc: Arc<Mutex<Option<Child>>>) {
+    std::thread::spawn(move || {
+        let mut consecutive_failures = 0u32;
+        loop {
+            std::thread::sleep(std::time::Duration::from_secs(5));
+
+            let exited = {
+                let mut guard = child_arc.lock().unwrap();
+                match guard.as_mut() {
+                    Some(child) => match child.try_wait() {
+                        Ok(Some(_)) | Err(_) => true,
+                        Ok(None) => false,
+                    },
+                    None => false,
+                }
+            };
+
+            if !exited {
+                continue;
+            }
+
+            match spawn_local_api(&app) {
+                Ok(new_child) => {
+                    consecutive_failures = 0;
+                    if let Ok(mut guard) = child_arc.lock() {
+                        *guard = Some(new_child);
+                    }
+                    eprintln!("[tauri] local-api watchdog: respawned sidecar");
+                }
+                Err(err) => {
+                    consecutive_failures += 1;
+                    eprintln!("[tauri] local-api watchdog: respawn failed ({err})");
+                    if consecutive_failures >= 3 {
+                        eprintln!("[tauri] local-api watchdog: giving up after 3 failures");
+                        break;
+                    }
+                }
+            }
+        }
+    });
+}
+
+/// Desktop bootstrap hook: spawn the Node sidecar and watch it (unchanged
+/// desktop behavior).
 pub fn setup_local_api(app: &tauri::App) {
-    match spawn_local_api(app) {
+    let handle = app.handle().clone();
+    match spawn_local_api(&handle) {
         Ok(mut child) => {
             let data_dir = app.path().app_local_data_dir().map_err(|err| err.to_string());
             if let Ok(dir) = &data_dir {
                 wait_for_local_api(dir, LOCAL_API_PORT, &mut child);
             }
-            app.manage(LocalApiState(Mutex::new(Some(child))));
+            let child_arc = Arc::new(Mutex::new(Some(child)));
+            app.manage(LocalApiState(child_arc.clone()));
+            start_watchdog(handle, child_arc);
         }
         Err(err) => {
             eprintln!("{err}");

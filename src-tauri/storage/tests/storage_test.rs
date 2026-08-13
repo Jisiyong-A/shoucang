@@ -376,7 +376,7 @@ fn recover_interrupted() {
     )
     .unwrap();
     ingest::transition(&store, j1, "OCR", 50, "").unwrap();
-    ingest::transition(&store, j2, "MEDIA", 20, "").unwrap();
+    ingest::transition(&store, j2, "DOWNLOADING_MEDIA", 20, "").unwrap();
 
     // j1 is "currently running" and must be preserved; j2 gets reset
     let recovered = ingest::recover_interrupted(&mut store, &[j1]).unwrap();

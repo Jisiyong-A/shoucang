@@ -1,4 +1,4 @@
-//! 看看收藏 app core.
+//! 收藏 app core.
 //!
 //! Shared by desktop (bin entry) and Android (mobile entry point via JNI).
 //! The mobile `cfg` is emitted by tauri-build when targeting android/ios.

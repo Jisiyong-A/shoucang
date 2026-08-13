@@ -5,6 +5,12 @@ description = "Local desktop shell for 收藏"
 authors = ["Patrick"]
 edition = "2021"
 
+# Shared core: desktop (bin) and Android (mobile entry via JNI) both use
+# this lib target; Android needs cdylib/staticlib for the .so.
+[lib]
+name = "shoucang_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 

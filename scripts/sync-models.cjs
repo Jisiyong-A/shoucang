@@ -8,6 +8,33 @@ const root = path.resolve(__dirname, '..');
 const src = path.join(root, 'public', 'models');
 const dst = path.join(root, 'dist', 'models');
 
+// Bundle the ONNX runtime WASM binaries from node_modules so the app never
+// fetches them from the jsdelivr CDN (blocked by production CSP and against
+// the local-first ADR). Idempotent; safe to run before every build.
+function ensureOrtWasm() {
+  const pkgDir = path.join(root, 'node_modules', 'onnxruntime-web', 'dist');
+  const outDir = path.join(src, 'wasm');
+  const files = [
+    'ort-wasm-simd-threaded.asyncify.mjs',
+    'ort-wasm-simd-threaded.asyncify.wasm',
+  ];
+  if (!fs.existsSync(pkgDir)) {
+    console.log('[sync-models] onnxruntime-web not installed, skipping ORT wasm');
+    return;
+  }
+  fs.mkdirSync(outDir, { recursive: true });
+  let copied = 0;
+  for (const file of files) {
+    const from = path.join(pkgDir, file);
+    if (!fs.existsSync(from)) continue;
+    fs.copyFileSync(from, path.join(outDir, file));
+    copied += 1;
+  }
+  console.log(`[sync-models] ORT wasm ensured (${copied}/${files.length} files)`);
+}
+
+ensureOrtWasm();
+
 if (!fs.existsSync(src)) {
   console.log('[sync-models] no public/models, skipping');
   process.exit(0);
