@@ -6,6 +6,7 @@
 
 **专治收藏夹吃灰 —— 让存过的小红书笔记，这次真的找得回来。**
 
+<img src="https://img.shields.io/badge/Windows-10%2F11-0078D6?logo=windows&logoColor=white" alt="Windows" />
 <img src="https://img.shields.io/badge/macOS-13%2B-000000?logo=apple&logoColor=white" alt="macOS" />
 <img src="https://img.shields.io/badge/Tauri-2-24C8DB?logo=tauri&logoColor=white" alt="Tauri" />
 <img src="https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white" alt="Next.js" />
@@ -124,18 +125,25 @@ flowchart LR
 
 ## 📦 安装
 
-> ⚠️ 目前是 **macOS 专用**。本地 OCR 依赖系统的 Vision 框架，封面缓存恢复也用了 macOS 路径。其他平台可以跑起来，但 OCR 会失效。
+> ⚠️ 平台说明：**Windows 10/11 与 macOS 均已支持**。Windows 用系统自带的
+> `Windows.Media.Ocr`（本地、中文优先、无云）；macOS 用系统 Vision 框架。
+> 两个平台的 OCR 都是纯本地，图片不出本机。
 
-### 1. 装桌面 App
+### 1. 装桌面 App（Windows）
+
+**直接下载安装包**（GitHub Releases）：`收藏_0.1.0_x64-setup.exe`，双击安装。
+无需安装 Node / Python / Rust。数据存 `%LOCALAPPDATA%\com.patrick.shoucang\`。
+
+**或从源码构建：**
 
 ```bash
-git clone https://github.com/feitangyuan/shoucang-shoucang.git
-cd shoucang-shoucang
+git clone https://github.com/Jisiyong-A/shoucang.git
+cd shoucang
 npm install
 npm run tauri:build
 ```
 
-产物在 `src-tauri/target/release/bundle/`，装完打开「收藏」。
+产物在 `src-tauri/target/release/bundle/nsis/`，装完打开「收藏」。
 
 ### 2. 装 Chrome 扩展
 
@@ -262,7 +270,7 @@ npm run build
 
 ## ⚠️ 已知限制
 
-- **仅 macOS**：OCR 依赖 Vision 框架
+- **Windows 10/11 与 macOS**：OCR 分别用 Windows.Media.Ocr / macOS Vision 框架，均为本地引擎
 - **小红书改版会失效**：扩展的 DOM 选择器和页面状态解析规则依赖当前页面结构，改版后需要跟着更新
 - **匿名解析可能失败**：页面拒绝匿名访问时导入会报错。这是设计如此 —— 不会为了成功率去用你的登录态
 - **不支持批量**：一次一条，没有收藏夹同步。这也是故意的
