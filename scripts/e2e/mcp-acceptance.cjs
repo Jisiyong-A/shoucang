@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 /* Task 06 §8 acceptance A–E via the real MCP server + real data dir. */
 const { spawn } = require('node:child_process');
 const path = require('node:path');

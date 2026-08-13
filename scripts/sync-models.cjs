@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable @typescript-eslint/no-require-imports */
 /** After every next build, sync bundled ONNX models into dist/
  * (next's incremental export does not reliably re-copy public/ files). */
 const fs = require('node:fs');

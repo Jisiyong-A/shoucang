@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 /* Clean-env MCP check against the INSTALLED server (bundled node). */
 const { spawn } = require('node:child_process');
 const fs = require('node:fs');
