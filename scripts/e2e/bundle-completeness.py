@@ -6,7 +6,7 @@ import os
 import posixpath
 import re
 
-REPO = r'D:\hermes\kankan-shoucang'
+REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 ROOT = os.path.join(REPO, 'scripts')
 
 with open(os.path.join(REPO, 'src-tauri', 'tauri.conf.json'), encoding='utf-8') as f:
