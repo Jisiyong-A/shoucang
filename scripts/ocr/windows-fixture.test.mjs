@@ -3,7 +3,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { runWindowsOcr } from './windows-local.mjs';
+import { runWindowsOcr, probeWindowsOcr } from './windows-local.mjs';
 import { runOcr } from './index.mjs';
 
 const moduleDirectory = path.dirname(fileURLToPath(import.meta.url));
@@ -13,8 +13,23 @@ const cn = path.join(fixtures, 'chinese-simple.png');
 const mixed = path.join(fixtures, 'mixed-cn-en.png');
 const low = path.join(fixtures, 'low-contrast.png');
 
+// CI runners (GitHub Actions windows-latest) ship only the en-US language
+// pack, so WinRT OCR cannot read CJK there at all. Local dev machines
+// usually have zh-Hans-CN installed. Skip the CJK assertions (with a
+// visible reason) when no Chinese recognizer is available — a language-pack
+// gap, not a code regression.
+async function hasChineseRecognizer() {
+  const probe = await probeWindowsOcr();
+  return Array.isArray(probe.languages)
+    && probe.languages.some((lang) => String(lang).toLowerCase().startsWith('zh'));
+}
+
 // Real recognition tests — Windows only (WinRT engine). Skipped elsewhere.
-test('windows OCR: chinese-simple fixture yields searchable CJK text', { skip: process.platform !== 'win32' }, async () => {
+test('windows OCR: chinese-simple fixture yields searchable CJK text', { skip: process.platform !== 'win32' }, async (t) => {
+  if (!(await hasChineseRecognizer())) {
+    t.skip('no Chinese OCR language pack on this machine (CI runner)');
+    return;
+  }
   const results = await runWindowsOcr([cn]);
   assert.equal(results.length, 1);
   const text = results[0].text;
@@ -25,7 +40,11 @@ test('windows OCR: chinese-simple fixture yields searchable CJK text', { skip: p
   assert.ok(text.includes('水温') || text.includes('水 温'), `missing 水温 in: ${text}`);
 });
 
-test('windows OCR: mixed-cn-en fixture keeps latin words', { skip: process.platform !== 'win32' }, async () => {
+test('windows OCR: mixed-cn-en fixture keeps latin words', { skip: process.platform !== 'win32' }, async (t) => {
+  if (!(await hasChineseRecognizer())) {
+    t.skip('no Chinese OCR language pack on this machine (CI runner)');
+    return;
+  }
   const results = await runWindowsOcr([mixed]);
   const text = results[0].text;
   assert.ok(!results[0].error, `unexpected error: ${results[0].error}`);
@@ -33,7 +52,11 @@ test('windows OCR: mixed-cn-en fixture keeps latin words', { skip: process.platf
   assert.ok(text.includes('咖啡') || text.includes('咖 啡'), `missing CJK in: ${text}`);
 });
 
-test('windows OCR: low-contrast fixture still yields text', { skip: process.platform !== 'win32' }, async () => {
+test('windows OCR: low-contrast fixture still yields text', { skip: process.platform !== 'win32' }, async (t) => {
+  if (!(await hasChineseRecognizer())) {
+    t.skip('no Chinese OCR language pack on this machine (CI runner)');
+    return;
+  }
   const results = await runWindowsOcr([low]);
   assert.equal(results.length, 1);
   // Recognition of low-contrast may be partial — require SOME text.
