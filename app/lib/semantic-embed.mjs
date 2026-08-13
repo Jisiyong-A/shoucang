@@ -17,6 +17,18 @@ import { env, pipeline } from '@huggingface/transformers';
 
 env.allowLocalModels = true;
 env.localModelPath = '/models/';
+// ONNX Runtime WASM binaries ship inside the bundle (public/models/wasm/);
+// the default jsdelivr CDN URL is blocked by the production CSP and would
+// silently disable semantic search.
+env.backends.onnx.wasm.wasmPaths = {
+  mjs: '/models/wasm/ort-wasm-simd-threaded.asyncify.mjs',
+  wasm: '/models/wasm/ort-wasm-simd-threaded.asyncify.wasm',
+};
+
+const debug = (...args) => {
+  try { console.log('[semantic]', new Date().toISOString().slice(11, 19), ...args); } catch { /* noop */ }
+};
+debug('module loaded, wasmPaths configured');
 
 const MODEL_ID = 'multilingual-e5-base';
 const EMBEDDING_DIM = 768;
@@ -50,6 +62,7 @@ async function getEmbedder() {
   if (!embedderPromise) {
     embedderPromise = pipeline('feature-extraction', MODEL_ID).catch((error) => {
       embedderPromise = null;
+      debug('pipeline FAILED:', error instanceof Error ? error.message : String(error));
       throw error;
     });
   }
@@ -128,7 +141,9 @@ export function noteEmbeddingText(note) {
 export async function indexNotesInBackground(notes, { onProgress } = {}) {
   try {
     await getEmbedder();
-  } catch {
+    debug('embedder ready, indexing', notes.length, 'notes');
+  } catch (error) {
+    debug('embedder unavailable, fallback to TF-IDF:', error instanceof Error ? error.message : String(error));
     return { indexed: 0, failed: true };
   }
 
@@ -172,10 +187,8 @@ export function cosine(a, b) {
   return dot / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
-/**
- * Semantic search over the archive using cached embeddings.
- * Returns [{ note, score }] sorted desc; empty on any failure.
- */
+/** Semantic search over the archive using cached embeddings.
+ *  Returns [{ note, score }] sorted desc; empty on any failure. */
 export async function semanticSearchEmbedded(notes, query, { limit = 50 } = {}) {
   try {
     const queryVector = await embedText(query);
@@ -189,7 +202,8 @@ export async function semanticSearchEmbedded(notes, query, { limit = 50 } = {}) 
       if (score > 0.35) scored.push({ note, score });
     }
     return scored.sort((a, b) => b.score - a.score).slice(0, limit);
-  } catch {
+  } catch (error) {
+    debug('semanticSearchEmbedded failed:', error instanceof Error ? error.message : String(error));
     return [];
   }
 }

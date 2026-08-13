@@ -203,9 +203,10 @@ export function DeskView() {
           });
           if (!cancelled) setSemanticIndexed(await semanticIndexStatus(notes));
         }
-      } catch {
-        // model unavailable — TF-IDF search remains the fallback
-      }
+        } catch (error) {
+          // model unavailable — TF-IDF search remains the fallback
+          console.error('[semantic] indexing effect failed:', error instanceof Error ? error.message : String(error));
+        }
     })();
     return () => { cancelled = true; };
   }, [notes]);
