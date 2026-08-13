@@ -92,6 +92,7 @@ export function NoteCard({
         {/* Type / media badges */}
         <div style={{ position: 'absolute', top: 8, left: 8, display: 'flex', gap: 5 }}>
           {note.type === 'video' && <Badge>VIDEO</Badge>}
+          {note.type === 'video' && !note.videoLocalPath && <Badge tone="signal">NO VIDEO</Badge>}
           {!mediaReady && <Badge tone="signal">MEDIA?</Badge>}
         </div>
       </div>
